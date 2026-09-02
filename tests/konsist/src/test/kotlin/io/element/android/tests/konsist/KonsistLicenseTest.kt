@@ -23,6 +23,16 @@ class KonsistLicenseTest {
          \*/
         """.trimIndent().toRegex()
 
+    // Files authored for the IndiaFOSS fork carry the same licence with a different copyright holder.
+    private val indiafossLicense = """
+        /\*
+         \* Copyright 20\d\d((, |-)20\d\d)? IndiaFOSS Companion contributors
+        (?:.*\n)* \*
+         \* SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial\.
+         \* Please see LICENSE files in the repository root for full details\.
+         \*/
+        """.trimIndent().toRegex()
+
     private val enterpriseLicense = """
         /\*
          \* © 20\d\d((, |-)20\d\d)? Element Creations Ltd\.
@@ -56,7 +66,7 @@ class KonsistLicenseTest {
                 assertThat(it).isNotEmpty()
             }
             .assertTrue {
-                publicLicense.containsMatchIn(it.text)
+                publicLicense.containsMatchIn(it.text) || indiafossLicense.containsMatchIn(it.text)
             }
     }
 
@@ -85,7 +95,7 @@ class KonsistLicenseTest {
                     it.name.startsWith("Template ").not()
             }
             .assertTrue {
-                it.text.count("Element Creations Ltd.") == 1
+                it.text.count("Element Creations Ltd.") + it.text.count("IndiaFOSS Companion contributors") == 1
             }
     }
 }

@@ -209,6 +209,20 @@ private fun RoomListMenuItems(
                 DropdownMenuItem(
                     onClick = {
                         showMenu = false
+                        onMenuActionClick(RoomListMenuAction.Conference)
+                    },
+                    text = { Text(stringResource(id = R.string.indiafoss_home_menu_conference)) },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = CompoundIcons.Calendar(),
+                            tint = ElementTheme.colors.iconSecondary,
+                            contentDescription = null,
+                        )
+                    },
+                )
+                DropdownMenuItem(
+                    onClick = {
+                        showMenu = false
                         onMenuActionClick(RoomListMenuAction.ReportBug)
                     },
                     text = { Text(stringResource(id = CommonStrings.common_report_a_problem)) },

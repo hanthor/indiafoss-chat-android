@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutId="conference"
+        android:shortcutLongLabel="@string/indiafoss_conference_shortcut_long"
+        android:shortcutShortLabel="@string/indiafoss_conference_shortcut">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="indiafoss://conference/"
+            android:targetClass="io.element.android.x.conference.ConferenceActivity"
+            android:targetPackage="org.indiafoss.chat" />
+    </shortcut>
+</shortcuts>
