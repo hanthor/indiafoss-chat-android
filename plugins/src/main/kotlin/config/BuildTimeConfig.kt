@@ -9,13 +9,13 @@
 package config
 
 object BuildTimeConfig {
-    const val APPLICATION_ID = "io.element.android.xneutrino"
-    const val APPLICATION_NAME = "Element X Neutrino"
+    const val APPLICATION_ID = "org.indiafoss.chat"
+    const val APPLICATION_NAME = "IndiaFOSS Chat"
     const val GOOGLE_APP_ID_RELEASE = ""
     const val GOOGLE_APP_ID_DEBUG = ""
 
     val METADATA_HOST_REVERSED: String? = null
-    val URL_WEBSITE: String? = null
+    val URL_WEBSITE: String? = "https://indiafoss.fossunited.org"
     val URL_LOGO: String? = null
     val URL_COPYRIGHT: String? = null
     val URL_ACCEPTABLE_USE: String? = null

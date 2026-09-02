@@ -68,6 +68,24 @@
         when the app is already open. This is important for incoming share (see
         https://github.com/element-hq/element-x-android/issues/4074).
         -->
+        <!-- IndiaFOSS Companion (schedule, plan, map, contact cards) hosted in-app. -->
+        <activity
+            android:name=".conference.ConferenceActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:exported="true"
+            android:label="@string/indiafoss_conference_title"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="indiafoss" />
+                <data android:host="conference" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
@@ -80,6 +98,9 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
             <!-- Handle deep-link for notification ./tools/adb/deeplink.sh -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -109,6 +130,20 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data android:scheme="matrix" />
+            </intent-filter>
+            <!--
+              IndiaFOSS Companion handoff: indiafoss://chat?dm=…|join=… and indiafoss://friend?v=1…
+              (shared contract with the companion PWA). Location/activity links stay with the companion.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="indiafoss" />
+                <data android:host="chat" />
+                <data android:host="friend" />
             </intent-filter>
             <!--
               links from matrix.to website

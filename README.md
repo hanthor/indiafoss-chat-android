@@ -1,3 +1,43 @@
+# IndiaFOSS Chat (Element X Android · Neutrino)
+
+> **Unofficial community fork.** Not produced or endorsed by Element or FOSS
+> United. Element is a trademark of Element Creations Ltd; this app is renamed
+> and re-identified (`org.indiafoss.chat`) and ships no Element branding.
+
+Fork of [element-x-android-neutrino](https://github.com/element-hq/element-x-android-neutrino)
+(itself a P2P fork of Element X Android `v26.05.2` with the embedded
+[Neutrino](https://github.com/element-hq/neutrino) homeserver), imported at
+upstream commit `94cd8274`, aligned with the
+[IndiaFOSS Companion](https://github.com/hanthor/indiafoss-companion):
+
+- **Conference handoff links.** `indiafoss://chat?dm=@user:server`,
+  `indiafoss://chat?join=#alias:server` and `indiafoss://friend?v=1…` cards
+  (the companion's shared contract) are rewritten to `matrix.to` permalinks by
+  `IndiafossLinks` and flow through Element's normal user-profile / join
+  screens — nothing is messaged or joined without a tap. A friend card that
+  only carries a Neutrino `server_name` resolves to the P2P address
+  `@n:<server_name>`.
+- **Conference inside the app.** `ConferenceActivity` hosts the offline-first
+  companion PWA (schedule, ranking, itinerary, venue map, contact cards) and
+  is reachable from the launcher shortcut "Conference" or
+  `indiafoss://conference/<route>`; chat links inside it hand back to the
+  messenger.
+- **E2EE.** Element X's Megolm encryption is untouched for accounts on public
+  homeservers. On the Neutrino mesh, rooms remain unencrypted until the
+  homeserver grows the device-key and to-device endpoints — see the scope in
+  the companion's [`docs/neutrino-e2ee.md`](https://github.com/hanthor/indiafoss-companion/blob/main/docs/neutrino-e2ee.md).
+
+## Building
+
+Same as upstream (Android Studio, JDK 21). The Neutrino bindings come from
+GitHub Packages (`io.element.neutrino:bindings`, published by
+`element-hq/neutrino-iroh`), which needs a token with `read:packages` even for
+public packages: set `GITHUB_TOKEN` locally, and add the repository secret
+`ELEMENT_BOT_TOKEN_NEUTRINO` (any PAT with `read:packages`) for the workflows
+in `.github/workflows`.
+
+---
+
 # Element X Android (Neutrino)
 
 P2P Fork of [Element X Android](https://github.com/element-hq/element-x-android), imported as a snapshot of `v26.05.2`.

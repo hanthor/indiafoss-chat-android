@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="indiafoss_conference_shortcut">Conference</string>
+    <string name="indiafoss_conference_shortcut_long">IndiaFOSS schedule, plan and map</string>
+    <string name="indiafoss_conference_title">IndiaFOSS conference</string>
+</resources>
