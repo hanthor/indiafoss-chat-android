@@ -38,6 +38,13 @@ val neutrinoLibsDir = layout.projectDirectory.dir("libs")
 val neutrinoAar = neutrinoLibsDir.file(neutrinoAarName)
 
 val fetchNeutrinoBindings by tasks.registering {
+    // Config-cache-friendly: doLast below runs at execution time and its
+    // closure must not capture the build script itself — every value it
+    // needs (including these) is copied into locals here, at configuration
+    // time, rather than read from the script's top-level vals directly.
+    val downloadUrl = "https://github.com/hanthor/indiafoss-companion/releases/download/" +
+        "neutrino-bindings-$neutrinoVersion/$neutrinoAarName"
+    val expectedSha256 = neutrinoSha256
     val outputFile = neutrinoAar.asFile
     outputs.file(outputFile)
     doLast {
@@ -45,17 +52,15 @@ val fetchNeutrinoBindings by tasks.registering {
             MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") {
                 "%02x".format(it)
             }
-        if (outputFile.exists() && sha256(outputFile) == neutrinoSha256) return@doLast
+        if (outputFile.exists() && sha256(outputFile) == expectedSha256) return@doLast
         outputFile.parentFile.mkdirs()
-        val url = "https://github.com/hanthor/indiafoss-companion/releases/download/" +
-            "neutrino-bindings-$neutrinoVersion/$neutrinoAarName"
-        logger.lifecycle("Fetching Neutrino bindings from $url")
-        URI(url).toURL().openStream().use { input ->
+        logger.lifecycle("Fetching Neutrino bindings from $downloadUrl")
+        URI(downloadUrl).toURL().openStream().use { input ->
             outputFile.outputStream().use { output -> input.copyTo(output) }
         }
         val actual = sha256(outputFile)
-        check(actual == neutrinoSha256) {
-            "Neutrino bindings checksum mismatch: expected $neutrinoSha256, got $actual"
+        check(actual == expectedSha256) {
+            "Neutrino bindings checksum mismatch: expected $expectedSha256, got $actual"
         }
     }
 }
