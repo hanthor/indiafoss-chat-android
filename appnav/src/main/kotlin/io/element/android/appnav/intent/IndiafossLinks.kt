@@ -9,6 +9,7 @@ package io.element.android.appnav.intent
 
 import android.net.Uri
 import androidx.core.net.toUri
+import io.element.android.libraries.core.data.tryOrNull
 
 /**
  * Translates the IndiaFOSS Companion's reserved `indiafoss://` payloads into
@@ -31,7 +32,7 @@ object IndiafossLinks {
 
     /** `matrix.to` permalink for a supported payload, or `null` when this is not one. */
     fun toMatrixTo(uriString: String): String? {
-        val uri = runCatching { uriString.toUri() }.getOrNull() ?: return null
+        val uri = tryOrNull { uriString.toUri() } ?: return null
         if (uri.scheme?.lowercase() != SCHEME) return null
         return when (uri.host?.lowercase()) {
             "chat" -> chatTarget(uri)

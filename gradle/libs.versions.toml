@@ -65,8 +65,10 @@ ktlint = "1.8.0"
 androidx-test-ext-junit = "1.3.0"
 kover = "0.9.8"
 
-# Neutrino
-neutrino = "0.8.2"
+# The .aar version string in the version name / archive filename (app/build.gradle.kts)
+# and the fetchNeutrinoBindings download URL (services/neutrino/impl/build.gradle.kts) —
+# not a Maven coordinate; see the comment in the latter for why.
+neutrino = "0.8.2-e2ee.b076256"
 
 [libraries]
 # Project
@@ -249,9 +251,6 @@ androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version
 test_roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
 test_roborazzi_compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 test_roborazzi_junit = { module = "io.github.takahirom.roborazzi:roborazzi-junit-rule", version.ref = "roborazzi" }
-
-# Neutrino!
-neutrino = { module = "io.element.neutrino:bindings", version.ref = "neutrino" }
 
 [bundles]
 
