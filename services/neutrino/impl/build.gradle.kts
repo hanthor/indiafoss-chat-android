@@ -1,5 +1,7 @@
 import extension.setupDependencyInjection
 import extension.testCommonDependencies
+import java.net.URI
+import java.security.MessageDigest
 
 /*
  * Copyright (c) 2026 Element Creations Ltd.
@@ -19,6 +21,49 @@ android {
 
 setupDependencyInjection()
 
+// The Neutrino bindings used to come from io.element.neutrino:bindings on GitHub
+// Packages, which returns 401 for anonymous requests even though the source is
+// public — every contributor and CI run needed a personal access token with
+// read:packages for element-hq (issue #3). We consume the same .aar the
+// IndiaFOSS Companion project already builds from source and publishes
+// anonymously for the identical reason (see its neutrino-bindings.yml): a
+// local file dependency needs no repository credentials at all. This build is
+// also compiled against hanthor/neutrino, our fork with the E2EE and CORS
+// patches, rather than plain upstream — see version.json in that repo for the
+// exact pinned rev.
+val neutrinoVersion = "0.8.2-e2ee.b076256"
+val neutrinoSha256 = "e58da42ff8c46153796e9fca44c518ca58d92263289405cf3c1673cc45cb313a"
+val neutrinoAarName = "neutrino-bindings-$neutrinoVersion.aar"
+val neutrinoLibsDir = layout.projectDirectory.dir("libs")
+val neutrinoAar = neutrinoLibsDir.file(neutrinoAarName)
+
+val fetchNeutrinoBindings by tasks.registering {
+    val outputFile = neutrinoAar.asFile
+    outputs.file(outputFile)
+    doLast {
+        fun sha256(file: java.io.File): String =
+            MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") {
+                "%02x".format(it)
+            }
+        if (outputFile.exists() && sha256(outputFile) == neutrinoSha256) return@doLast
+        outputFile.parentFile.mkdirs()
+        val url = "https://github.com/hanthor/indiafoss-companion/releases/download/" +
+            "neutrino-bindings-$neutrinoVersion/$neutrinoAarName"
+        logger.lifecycle("Fetching Neutrino bindings from $url")
+        URI(url).toURL().openStream().use { input ->
+            outputFile.outputStream().use { output -> input.copyTo(output) }
+        }
+        val actual = sha256(outputFile)
+        check(actual == neutrinoSha256) {
+            "Neutrino bindings checksum mismatch: expected $neutrinoSha256, got $actual"
+        }
+    }
+}
+
+tasks.named("preBuild") {
+    dependsOn(fetchNeutrinoBindings)
+}
+
 dependencies {
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.architecture)
@@ -28,7 +73,7 @@ dependencies {
     implementation(libs.coroutines.core)
 
     api(projects.services.neutrino.api)
-    implementation(libs.neutrino)
+    implementation(files(neutrinoAar))
 
     testCommonDependencies(libs)
 }
