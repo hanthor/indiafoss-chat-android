@@ -65,6 +65,11 @@ ktlint = "1.8.0"
 androidx-test-ext-junit = "1.3.0"
 kover = "0.9.8"
 
+# The .aar version string in the version name / archive filename (app/build.gradle.kts)
+# and the fetchNeutrinoBindings download URL (services/neutrino/impl/build.gradle.kts) —
+# not a Maven coordinate; see the comment in the latter for why.
+neutrino = "0.8.2-e2ee.b076256"
+
 [libraries]
 # Project
 android_gradle_plugin = { module = "com.android.tools.build:gradle", version.ref = "android_gradle_plugin" }

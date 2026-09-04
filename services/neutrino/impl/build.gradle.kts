@@ -31,7 +31,7 @@ setupDependencyInjection()
 // also compiled against hanthor/neutrino, our fork with the E2EE and CORS
 // patches, rather than plain upstream — see version.json in that repo for the
 // exact pinned rev.
-val neutrinoVersion = "0.8.2-e2ee.b076256"
+val neutrinoVersion = libs.versions.neutrino.get()
 val neutrinoSha256 = "e58da42ff8c46153796e9fca44c518ca58d92263289405cf3c1673cc45cb313a"
 val neutrinoAarName = "neutrino-bindings-$neutrinoVersion.aar"
 val neutrinoLibsDir = layout.projectDirectory.dir("libs")
