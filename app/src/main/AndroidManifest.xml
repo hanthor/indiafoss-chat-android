@@ -158,6 +158,30 @@
                 <data android:host="user" />
                 <data android:host="room" />
             </intent-filter>
+            <!--
+              matrix.to permalinks themselves — the companion's only chat handoff.
+              Since ADR 0004 the companion apps embed no chat: every "session
+              chat", "booth chat" and "message on mesh" affordance is a
+              https://matrix.to/#/<alias-or-user-id> link handed to the OS. Without
+              this filter that link can only ever open a browser or another client,
+              so the companion could never reach this app — the handoff it is built
+              around would be broken for the one client that speaks the mesh.
+
+              Deliberately not autoVerify: matrix.to is not our domain, we cannot
+              host its assetlinks.json, and app-links verification would fail. An
+              unverified filter puts this app in the chooser alongside any other
+              Matrix client, which is what "opens in your Matrix app of choice"
+              means.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="https" />
+                <data android:host="matrix.to" />
+            </intent-filter>
             <!-- Incoming share simple -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
