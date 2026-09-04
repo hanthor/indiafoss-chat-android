@@ -60,10 +60,6 @@ val fetchNeutrinoBindings by tasks.registering {
     }
 }
 
-tasks.named("preBuild") {
-    dependsOn(fetchNeutrinoBindings)
-}
-
 dependencies {
     implementation(projects.libraries.androidutils)
     implementation(projects.libraries.architecture)
@@ -73,7 +69,13 @@ dependencies {
     implementation(libs.coroutines.core)
 
     api(projects.services.neutrino.api)
-    implementation(files(neutrinoAar))
+    // builtBy (not just preBuild.dependsOn) so every consumer of this file
+    // collection — including cross-project tasks like :app's dependency
+    // report, which read it directly without going through this module's own
+    // task graph — picks up the task dependency Gradle needs to order the
+    // download correctly. Without it, Gradle's task validation rejects the
+    // build outright ("uses this output... without declaring a dependency").
+    implementation(files(neutrinoAar).builtBy(fetchNeutrinoBindings))
 
     testCommonDependencies(libs)
 }
