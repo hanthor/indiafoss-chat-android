@@ -10,6 +10,7 @@ package io.element.android.services.neutrino.impl
 import android.content.ContentValues
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.MediaStore
 import dev.zacsweers.metro.AppScope
@@ -60,6 +61,9 @@ class DefaultNeutrinoService(
     // first successful start; lives for the app-singleton's process lifetime.
     private var connectivityKicker: ConnectivityKicker? = null
 
+    // Held for as long as the node runs. See acquireMulticastLock.
+    private var multicastLock: WifiManager.MulticastLock? = null
+
     override fun start() {
         if (handle != null) {
             return
@@ -72,6 +76,9 @@ class DefaultNeutrinoService(
         // initialised first. The caller (the startup splash) has already gated this
         // on the BLE runtime permissions being granted.
         initBleNativeOnce()
+        // Before the server starts, because the iroh endpoint begins listening
+        // for mDNS announcements during start.
+        acquireMulticastLock()
         try {
             handle = io.element.neutrino.ble.startBle(io.element.neutrino.NeutrinoConfig(
                 // server_name is no longer supplied: the homeserver derives it from
@@ -255,6 +262,34 @@ class DefaultNeutrinoService(
     // Failures are logged, not fatal — the server still runs (federation just has
     // no BLE path).
     private var bleNativeInitialised = false
+
+    // Android's Wi-Fi driver discards incoming multicast that is not addressed
+    // to this device, to save power. mDNS is multicast, so with no lock held
+    // the node announces itself and hears nothing back: it never finds a peer
+    // over Wi-Fi and falls back to BLE, which carries the mesh but far more
+    // slowly. Nothing reports an error — from the node's side the LAN simply
+    // has nobody on it — so this is the kind of failure that only shows up as
+    // "chat feels slow" in a hall.
+    //
+    // Not reference counted, so acquiring twice cannot leave a lock
+    // outstanding. Failures are logged rather than fatal: BLE still works.
+    private fun acquireMulticastLock() {
+        if (multicastLock != null) return
+        try {
+            val wifi = context.applicationContext.getSystemService(WifiManager::class.java)
+            if (wifi == null) {
+                Timber.w("No WifiManager; mDNS peer discovery will not work over Wi-Fi")
+                return
+            }
+            multicastLock = wifi.createMulticastLock("neutrino-mdns").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+            Timber.i("Multicast lock held; mDNS peer discovery can receive over Wi-Fi")
+        } catch (t: Throwable) {
+            Timber.e(t, "Could not hold a multicast lock; Wi-Fi peer discovery may not work")
+        }
+    }
 
     private fun initBleNativeOnce() {
         if (bleNativeInitialised) return
