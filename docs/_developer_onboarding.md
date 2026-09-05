@@ -411,8 +411,8 @@ Last point, note that `Timber.v` function may have no effect on some devices. Pr
 
 #### Translations
 
-Translations are handled through localazy. See [the dedicated README.md file](../tools/localazy/README.md) for information on how
-to configure new modules etc.
+Translations are handled through Localazy. See [`AGENTS.md`](../AGENTS.md#strings--localisation) for information on how
+strings are structured, named, and managed.
 
 #### Rageshake
 
