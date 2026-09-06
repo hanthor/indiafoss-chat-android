@@ -68,7 +68,7 @@ kover = "0.9.8"
 # The .aar version string in the version name / archive filename (app/build.gradle.kts)
 # and the fetchNeutrinoBindings download URL (services/neutrino/impl/build.gradle.kts) —
 # not a Maven coordinate; see the comment in the latter for why.
-neutrino = "0.8.2-e2ee.b076256"
+neutrino = "0.8.2-e2ee.81fe48c"
 
 [libraries]
 # Project
