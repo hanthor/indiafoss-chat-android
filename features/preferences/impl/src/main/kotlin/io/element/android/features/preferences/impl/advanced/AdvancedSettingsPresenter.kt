@@ -57,6 +57,10 @@ class AdvancedSettingsPresenter(
             appPreferencesStore.getLiveLocationMinimumDistanceInMetersUpdateFlow().collect { value = it }
         }
 
+        val isDynamicColorsEnabled by remember {
+            appPreferencesStore.getDynamicColorsEnabledFlow()
+        }.collectAsState(initial = true)
+
         val mediaPreviewConfigState = mediaPreviewConfigStateStore.state()
 
         val themeOption by remember {
@@ -111,6 +115,9 @@ class AdvancedSettingsPresenter(
                 is AdvancedSettingsEvents.SetCompressMedia -> sessionCoroutineScope.launch {
                     sessionPreferencesStore.setOptimizeImages(event.compress)
                 }
+                is AdvancedSettingsEvents.SetDynamicColorsEnabled -> sessionCoroutineScope.launch {
+                    appPreferencesStore.setDynamicColorsEnabled(event.enabled)
+                }
                 is AdvancedSettingsEvents.SetTheme -> sessionCoroutineScope.launch {
                     when (event.theme) {
                         ThemeOption.System -> appPreferencesStore.setTheme(Theme.System.name)
@@ -138,6 +145,7 @@ class AdvancedSettingsPresenter(
             isSharePresenceEnabled = isSharePresenceEnabled,
             mediaOptimizationState = mediaOptimizationState,
             theme = themeOption,
+            isDynamicColorsEnabled = isDynamicColorsEnabled,
             availableThemeOptions = availableThemeOptions,
             mediaPreviewConfigState = mediaPreviewConfigState,
             liveLocationMinimumDistanceUpdate = liveLocationMinimumDistanceUpdate,

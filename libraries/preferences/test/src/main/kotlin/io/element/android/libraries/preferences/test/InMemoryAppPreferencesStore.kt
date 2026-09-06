@@ -28,6 +28,7 @@ class InMemoryAppPreferencesStore(
     private val isDeveloperModeEnabled = MutableStateFlow(isDeveloperModeEnabled)
     private val customElementCallBaseUrl = MutableStateFlow(customElementCallBaseUrl)
     private val theme = MutableStateFlow(theme)
+    private val dynamicColors = MutableStateFlow(true)
     private val liveLocationMinimumDistanceUpdate = MutableStateFlow(liveLocationMinimumDistanceUpdate)
     private val logLevel = MutableStateFlow(logLevel)
     private val tracingLogPacks = MutableStateFlow(traceLockPacks)
@@ -56,6 +57,14 @@ class InMemoryAppPreferencesStore(
 
     override fun getThemeFlow(): Flow<String?> {
         return theme
+    }
+
+    override suspend fun setDynamicColorsEnabled(enabled: Boolean) {
+        this.dynamicColors.value = enabled
+    }
+
+    override fun getDynamicColorsEnabledFlow(): Flow<Boolean> {
+        return dynamicColors
     }
 
     override suspend fun setLiveLocationMinimumDistanceInMetersUpdate(value: Int) {

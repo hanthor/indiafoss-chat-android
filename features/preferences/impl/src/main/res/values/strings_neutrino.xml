@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings added by the IndiaFOSS Chat fork; kept in their own file so the
+     Localazy-managed translations.xml stays machine-owned. -->
+<resources>
+    <string name="screen_advanced_settings_dynamic_colors_title">Use wallpaper colours</string>
+    <string name="screen_advanced_settings_dynamic_colors_description">Match the app to your device\'s Material You palette (Android 12+).</string>
+</resources>
