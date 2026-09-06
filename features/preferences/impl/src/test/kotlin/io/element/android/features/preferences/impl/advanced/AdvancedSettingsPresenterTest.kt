@@ -184,6 +184,29 @@ class AdvancedSettingsPresenterTest {
     }
 
     @Test
+    fun `present - dynamic colors default on and toggles`() = runTest {
+        val presenter = createAdvancedSettingsPresenter()
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            skipItems(1)
+            with(awaitItem()) {
+                // Default on: a phone that themes every app to its wallpaper
+                // should theme this one too.
+                assertThat(isDynamicColorsEnabled).isTrue()
+                eventSink(AdvancedSettingsEvents.SetDynamicColorsEnabled(false))
+            }
+            with(awaitItem()) {
+                assertThat(isDynamicColorsEnabled).isFalse()
+                eventSink(AdvancedSettingsEvents.SetDynamicColorsEnabled(true))
+            }
+            with(awaitItem()) {
+                assertThat(isDynamicColorsEnabled).isTrue()
+            }
+        }
+    }
+
+    @Test
     fun `present - change theme`() = runTest {
         val presenter = createAdvancedSettingsPresenter()
         moleculeFlow(RecompositionMode.Immediate) {
