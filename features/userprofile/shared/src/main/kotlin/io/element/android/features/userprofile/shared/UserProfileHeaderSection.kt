@@ -42,6 +42,7 @@ import io.element.android.libraries.designsystem.theme.components.ButtonSize
 import io.element.android.libraries.designsystem.theme.components.OutlinedButton
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.meshShortCode
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.testtags.testTag
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -92,13 +93,34 @@ fun UserProfileHeaderSection(
             )
             Spacer(modifier = Modifier.height(6.dp))
         }
-        Text(
-            modifier = Modifier.niceClickable { onUserIdClick() },
-            text = userId.value,
-            style = ElementTheme.typography.fontBodyLgRegular,
-            color = ElementTheme.colors.textSecondary,
-            textAlign = TextAlign.Center,
-        )
+        // On the mesh a user id is a 64-hex node id (ADR 0008). Show a short,
+        // readable code as the identity line and keep the full id one tap away
+        // (the tap copies it to the clipboard). Off the mesh, show the id as-is.
+        val meshShortCode = userId.meshShortCode
+        if (meshShortCode != null) {
+            Text(
+                modifier = Modifier.niceClickable { onUserIdClick() },
+                text = meshShortCode,
+                style = ElementTheme.typography.fontBodyLgMedium,
+                color = ElementTheme.colors.textPrimary,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = stringResource(R.string.screen_user_profile_mesh_identity_label),
+                style = ElementTheme.typography.fontBodySmRegular,
+                color = ElementTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+        } else {
+            Text(
+                modifier = Modifier.niceClickable { onUserIdClick() },
+                text = userId.value,
+                style = ElementTheme.typography.fontBodyLgRegular,
+                color = ElementTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+        }
         when (verificationState) {
             UserProfileVerificationState.UNKNOWN, UserProfileVerificationState.UNVERIFIED -> Unit
             UserProfileVerificationState.VERIFIED -> {
@@ -143,6 +165,20 @@ internal fun UserProfileHeaderSectionPreview() = ElementPreview {
         userId = UserId("@alice:example.com"),
         userName = USER_NAME_ALICE,
         verificationState = UserProfileVerificationState.VERIFIED,
+        openAvatarPreview = {},
+        onUserIdClick = {},
+        withdrawVerificationClick = {},
+    )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun UserProfileHeaderSectionMeshPreview() = ElementPreview {
+    UserProfileHeaderSection(
+        avatarUrl = null,
+        userId = UserId("@n:845aa456078572639c1543694de69e0a03fb883bd9c1dab1a2f6df811b75897e"),
+        userName = "rueh",
+        verificationState = UserProfileVerificationState.UNVERIFIED,
         openAvatarPreview = {},
         onUserIdClick = {},
         withdrawVerificationClick = {},
