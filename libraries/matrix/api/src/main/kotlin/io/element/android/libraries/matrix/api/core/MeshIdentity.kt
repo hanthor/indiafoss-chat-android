@@ -7,21 +7,21 @@
 
 package io.element.android.libraries.matrix.api.core
 
-/**
+/*
  * Mesh identity helpers (ADR 0008).
  *
  * On the venue mesh a user's server-name is the embedded node's 64-hex iroh
  * node id (the ed25519 public key, hex-encoded), so a mesh user id looks like
  * `@n:845aa456…897e`. That full id is the real, addressed, verifiable identity
  * and must never be trusted in an abbreviated form. These helpers only make it
- * *legible*: a short code the eye can match and a stable seed for a badge/colour.
+ * legible: a short code the eye can match and a stable seed for a badge/colour.
  *
  * The localpart is deliberately ignored — it is host-stamped ("n" by the medium,
  * "alice" by the bare server) and carries no identity. Detection keys off the
  * server-name shape alone.
  */
 
-/** A 64-character lowercase-hex server-name is a mesh node id. */
+// A 64-character lowercase-hex server-name is a mesh node id.
 private val MESH_SERVER_NAME = Regex("^[0-9a-f]{64}$")
 
 /**
