@@ -29,6 +29,7 @@ import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.services.neutrino.api.CaptureResult
 import io.element.android.services.neutrino.api.NeutrinoService
 import io.element.android.tests.testutils.WarmUpRule
+import io.element.android.tests.testutils.consumeItemsUntilPredicate
 import io.element.android.tests.testutils.lambda.lambdaRecorder
 import io.element.android.tests.testutils.lambda.value
 import io.element.android.tests.testutils.test
@@ -113,8 +114,6 @@ class DeveloperSettingsPresenterTest {
         )
         presenter.test {
             skipItems(1)
-            // Wait for cache and database size loading before exercising capture.
-            skipItems(2)
             val initialState = awaitItem()
             assertThat(initialState.isEnterpriseBuild).isTrue()
             initialState.eventSink(DeveloperSettingsEvents.SetShowColorPicker(true))
@@ -168,19 +167,21 @@ class DeveloperSettingsPresenterTest {
             ),
         )
         presenter.test {
-            // Wait for cache and database size loading before exercising capture.
-            skipItems(2)
-            val initialState = awaitItem()
+            val initialState = consumeItemsUntilPredicate {
+                it.cacheSize is AsyncData.Success && it.databaseSizes is AsyncData.Success
+            }.last()
             assertThat(initialState.neutrinoCapturing).isFalse()
             assertThat(initialState.neutrinoCaptureStatus).isNull()
 
             initialState.eventSink(DeveloperSettingsEvents.ToggleNeutrinoCapture)
-            val capturing = awaitItem()
+            val capturing = consumeItemsUntilPredicate { it.neutrinoCaptureStatus != null }.last()
             assertThat(capturing.neutrinoCapturing).isTrue()
             assertThat(capturing.neutrinoCaptureStatus).isEqualTo("Capturing… saved to Downloads on stop")
 
             capturing.eventSink(DeveloperSettingsEvents.ToggleNeutrinoCapture)
-            val stopped = awaitItem()
+            val stopped = consumeItemsUntilPredicate {
+                it.neutrinoCaptureStatus != capturing.neutrinoCaptureStatus
+            }.last()
             assertThat(stopped.neutrinoCapturing).isFalse()
             assertThat(stopped.neutrinoCaptureStatus).isEqualTo("Saved to Download/neutrino-fed.pcap")
             cancelAndIgnoreRemainingEvents()
@@ -195,11 +196,11 @@ class DeveloperSettingsPresenterTest {
             ),
         )
         presenter.test {
-            // Wait for cache and database size loading before exercising capture.
-            skipItems(2)
-            val initialState = awaitItem()
+            val initialState = consumeItemsUntilPredicate {
+                it.cacheSize is AsyncData.Success && it.databaseSizes is AsyncData.Success
+            }.last()
             initialState.eventSink(DeveloperSettingsEvents.ToggleNeutrinoCapture)
-            val failed = awaitItem()
+            val failed = consumeItemsUntilPredicate { it.neutrinoCaptureStatus != null }.last()
             assertThat(failed.neutrinoCapturing).isFalse()
             assertThat(failed.neutrinoCaptureStatus).isEqualTo("Failed: permission denied")
             cancelAndIgnoreRemainingEvents()
