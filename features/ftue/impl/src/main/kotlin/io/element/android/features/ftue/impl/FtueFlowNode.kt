@@ -22,6 +22,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.annotations.ContributesNode
 import io.element.android.features.analytics.api.AnalyticsEntryPoint
+import io.element.android.features.ftue.impl.discovery.DiscoveryOptInNode
 import io.element.android.features.ftue.impl.notifications.NotificationsOptInNode
 import io.element.android.features.ftue.impl.sessionverification.FtueSessionVerificationFlowNode
 import io.element.android.features.ftue.impl.setdisplayname.SetDisplayNameNode
@@ -63,6 +64,9 @@ class FtueFlowNode(
         data object SetDisplayName : NavTarget
 
         @Parcelize
+        data object DiscoveryOptIn : NavTarget
+
+        @Parcelize
         data object SessionVerification : NavTarget
 
         @Parcelize
@@ -97,6 +101,14 @@ class FtueFlowNode(
                     }
                 }
                 createNode<SetDisplayNameNode>(buildContext, listOf(callback))
+            }
+            NavTarget.DiscoveryOptIn -> {
+                val callback = object : DiscoveryOptInNode.Callback {
+                    override fun onDiscoveryChoiceMade() {
+                        defaultFtueService.updateFtueStep()
+                    }
+                }
+                createNode<DiscoveryOptInNode>(buildContext, listOf(callback))
             }
             is NavTarget.SessionVerification -> {
                 val callback = object : FtueSessionVerificationFlowNode.Callback {
@@ -140,6 +152,9 @@ class FtueFlowNode(
             }
             FtueStep.SetDisplayName -> {
                 backstack.newRoot(NavTarget.SetDisplayName)
+            }
+            FtueStep.DiscoveryOptIn -> {
+                backstack.newRoot(NavTarget.DiscoveryOptIn)
             }
             FtueStep.SessionVerification -> {
                 backstack.newRoot(NavTarget.SessionVerification)
