@@ -25,7 +25,7 @@ class IndiafossLinksTest {
         assertThat(IndiafossLinks.toMatrixTo("indiafoss://chat?join=%23indiafoss-2026-session-act-1%3Amatrix.org"))
             .isEqualTo("https://matrix.to/#/%23indiafoss-2026-session-act-1%3Amatrix.org")
         assertThat(IndiafossLinks.toMatrixTo("indiafoss://chat?join=%21abc%3Ahs"))
-            .isEqualTo("https://matrix.to/#/%21abc%3Ahs")
+            .isEqualTo("https://matrix.to/#/!abc%3Ahs")
     }
 
     @Test
