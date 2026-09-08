@@ -27,8 +27,10 @@ import io.element.android.libraries.ui.strings.CommonStrings
 fun UserProfileMainActionsSection(
     isCurrentUser: Boolean,
     canCall: Boolean,
+    canShowMeshCode: Boolean,
     onShareUser: () -> Unit,
     onStartDM: () -> Unit,
+    onShowMeshCode: () -> Unit,
     onCall: (CallIntent) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,6 +45,13 @@ fun UserProfileMainActionsSection(
                 title = stringResource(CommonStrings.action_message),
                 imageVector = CompoundIcons.Chat(),
                 onClick = onStartDM,
+            )
+        }
+        if (canShowMeshCode) {
+            MainActionButton(
+                title = stringResource(R.string.screen_user_profile_my_mesh_code_action),
+                imageVector = CompoundIcons.QrCode(),
+                onClick = onShowMeshCode,
             )
         }
         if (canCall) {
@@ -72,8 +81,10 @@ internal fun UserProfileMainActionsSectionPreview() = ElementPreview {
     UserProfileMainActionsSection(
         isCurrentUser = false,
         canCall = true,
+        canShowMeshCode = false,
         onShareUser = { },
         onStartDM = { },
+        onShowMeshCode = { },
         onCall = { }
     )
 }

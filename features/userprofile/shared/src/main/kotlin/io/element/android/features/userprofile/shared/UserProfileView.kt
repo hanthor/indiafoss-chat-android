@@ -17,6 +17,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
@@ -36,6 +40,7 @@ import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.ListItem
+import io.element.android.libraries.designsystem.theme.components.ModalBottomSheet
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
@@ -43,6 +48,7 @@ import io.element.android.libraries.designsystem.utils.snackbar.SnackbarHost
 import io.element.android.libraries.designsystem.utils.snackbar.rememberSnackbarHostState
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.meshShortCode
 import io.element.android.libraries.matrix.api.notification.CallIntent
 import io.element.android.libraries.matrix.ui.components.CreateDmConfirmationBottomSheet
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -58,8 +64,11 @@ fun UserProfileView(
     openAvatarPreview: (username: String, url: String) -> Unit,
     onVerifyClick: (UserId) -> Unit,
     modifier: Modifier = Modifier,
+    myMeshCodeData: String? = null,
 ) {
     val snackbarHostState = rememberSnackbarHostState(snackbarMessage = state.snackbarMessage)
+    val canShowMeshCode = state.isCurrentUser && myMeshCodeData != null
+    var showMeshCodeSheet by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -89,8 +98,10 @@ fun UserProfileView(
             UserProfileMainActionsSection(
                 isCurrentUser = state.isCurrentUser,
                 canCall = state.canCall,
+                canShowMeshCode = canShowMeshCode,
                 onShareUser = onShareUser,
                 onStartDM = { state.eventSink(UserProfileEvents.StartDM) },
+                onShowMeshCode = { showMeshCodeSheet = true },
                 onCall = { intent -> state.dmRoomId?.let { onStartCall(it, intent) } }
             )
             Spacer(modifier = Modifier.height(26.dp))
@@ -124,6 +135,18 @@ fun UserProfileView(
                         )
                     }
                 },
+            )
+        }
+    }
+
+    if (showMeshCodeSheet && myMeshCodeData != null) {
+        ModalBottomSheet(
+            onDismissRequest = { showMeshCodeSheet = false },
+            scrollable = true,
+        ) {
+            MyMeshCodeView(
+                qrCodeData = myMeshCodeData,
+                shortCode = state.userId.meshShortCode,
             )
         }
     }
