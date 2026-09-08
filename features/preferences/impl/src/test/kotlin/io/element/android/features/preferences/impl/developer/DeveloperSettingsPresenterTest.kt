@@ -113,6 +113,8 @@ class DeveloperSettingsPresenterTest {
         )
         presenter.test {
             skipItems(1)
+            // Wait for cache and database size loading before exercising capture.
+            skipItems(2)
             val initialState = awaitItem()
             assertThat(initialState.isEnterpriseBuild).isTrue()
             initialState.eventSink(DeveloperSettingsEvents.SetShowColorPicker(true))
@@ -166,6 +168,8 @@ class DeveloperSettingsPresenterTest {
             ),
         )
         presenter.test {
+            // Wait for cache and database size loading before exercising capture.
+            skipItems(2)
             val initialState = awaitItem()
             assertThat(initialState.neutrinoCapturing).isFalse()
             assertThat(initialState.neutrinoCaptureStatus).isNull()
@@ -191,6 +195,8 @@ class DeveloperSettingsPresenterTest {
             ),
         )
         presenter.test {
+            // Wait for cache and database size loading before exercising capture.
+            skipItems(2)
             val initialState = awaitItem()
             initialState.eventSink(DeveloperSettingsEvents.ToggleNeutrinoCapture)
             val failed = awaitItem()
