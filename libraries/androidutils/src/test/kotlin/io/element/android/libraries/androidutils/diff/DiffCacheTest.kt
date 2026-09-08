@@ -16,7 +16,7 @@ class DiffCacheTest {
     fun `MutableListDiffCache operations perform correctly`() {
         val cache = MutableListDiffCache<String>()
         assertThat(cache.isEmpty()).isTrue()
-        assertThat(cache.indices).isEmpty()
+        assertThat(cache.indices()).isEmpty()
 
         cache.add(0, "a")
         cache.add(1, "b")
@@ -24,7 +24,7 @@ class DiffCacheTest {
         assertThat(cache.get(0)).isEqualTo("a")
         assertThat(cache.get(1)).isEqualTo("b")
         assertThat(cache.get(2)).isNull()
-        assertThat(cache.indices).isEqualTo(0..1)
+        assertThat(cache.indices()).isEqualTo(0..1)
 
         cache[0] = "c"
         assertThat(cache.get(0)).isEqualTo("c")
