@@ -209,6 +209,17 @@ class DefaultNeutrinoService(
 
     override fun isCapturing(): Boolean = handle?.isCapturing() == true
 
+    override suspend fun setDiscoverable(discoverable: Boolean) {
+        // The Neutrino FFI binding `set_discoverable` exists in source but is not
+        // yet in the pinned prebuilt .aar, so calling it would not compile. Log for
+        // now; the plumbing (preferences + this call site) is complete end-to-end
+        // except for this final FFI hop.
+        Timber.d(
+            "setDiscoverable(%b) — TODO(on-device): call NeutrinoBindings.setDiscoverable once the .aar ships it",
+            discoverable,
+        )
+    }
+
     // Copy the finished pcap into the public Downloads collection so it lands at a
     // short path (`/sdcard/Download/neutrino-<timestamp>.pcap`) that's trivial to
     // `adb pull` and visible in the Files app — far better dev UX than the

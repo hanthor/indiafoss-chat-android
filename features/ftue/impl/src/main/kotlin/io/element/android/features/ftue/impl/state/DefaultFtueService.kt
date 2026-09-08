@@ -89,7 +89,12 @@ class DefaultFtueService(
             } else {
                 getNextStep(FtueStep.SetDisplayName)
             }
-            FtueStep.SetDisplayName -> if (isSessionNotVerified() || userNeedsToConfirmSessionVerificationSuccess.value) {
+            FtueStep.SetDisplayName -> if (shouldOptInDiscovery()) {
+                FtueStep.DiscoveryOptIn
+            } else {
+                getNextStep(FtueStep.DiscoveryOptIn)
+            }
+            FtueStep.DiscoveryOptIn -> if (isSessionNotVerified() || userNeedsToConfirmSessionVerificationSuccess.value) {
                 FtueStep.SessionVerification
             } else {
                 getNextStep(FtueStep.SessionVerification)
@@ -128,6 +133,12 @@ class DefaultFtueService(
         return !sessionPreferencesStore.isDisplayNamePromptCompleted().first()
     }
 
+    // Ask once, right after the display name (which governs what's advertised),
+    // whether the user wants to be discoverable by nearby peers over the BLE mesh.
+    private suspend fun shouldOptInDiscovery(): Boolean {
+        return !sessionPreferencesStore.isDiscoveryPromptCompleted().first()
+    }
+
     private suspend fun shouldAskNotificationPermissions(): Boolean {
         return if (sdkVersionProvider.isAtLeast(Build.VERSION_CODES.TIRAMISU)) {
             val permission = Manifest.permission.POST_NOTIFICATIONS
@@ -151,6 +162,7 @@ class DefaultFtueService(
 sealed interface FtueStep {
     data object WaitingForInitialState : FtueStep
     data object SetDisplayName : FtueStep
+    data object DiscoveryOptIn : FtueStep
     data object SessionVerification : FtueStep
     data object NotificationsOptIn : FtueStep
     data object AnalyticsOptIn : FtueStep

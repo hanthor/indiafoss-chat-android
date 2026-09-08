@@ -21,6 +21,8 @@ class InMemorySessionPreferencesStore(
     isRenderTypingNotificationsEnabled: Boolean = true,
     isSessionVerificationSkipped: Boolean = false,
     isDisplayNamePromptCompleted: Boolean = false,
+    isDiscoverable: Boolean = true,
+    isDiscoveryPromptCompleted: Boolean = false,
     doesCompressMedia: Boolean = true,
     videoCompressionPreset: VideoCompressionPreset = VideoCompressionPreset.STANDARD,
 ) : SessionPreferencesStore {
@@ -31,6 +33,8 @@ class InMemorySessionPreferencesStore(
     private val isRenderTypingNotificationsEnabled = MutableStateFlow(isRenderTypingNotificationsEnabled)
     private val isSessionVerificationSkipped = MutableStateFlow(isSessionVerificationSkipped)
     private val isDisplayNamePromptCompleted = MutableStateFlow(isDisplayNamePromptCompleted)
+    private val isDiscoverable = MutableStateFlow(isDiscoverable)
+    private val isDiscoveryPromptCompleted = MutableStateFlow(isDiscoveryPromptCompleted)
     private val doesCompressMedia = MutableStateFlow(doesCompressMedia)
     private val videoCompressionPreset = MutableStateFlow(videoCompressionPreset)
     var clearCallCount = 0
@@ -79,6 +83,18 @@ class InMemorySessionPreferencesStore(
     }
 
     override fun isDisplayNamePromptCompleted(): Flow<Boolean> = isDisplayNamePromptCompleted
+
+    override suspend fun setDiscoverable(discoverable: Boolean) {
+        isDiscoverable.tryEmit(discoverable)
+    }
+
+    override fun isDiscoverable(): Flow<Boolean> = isDiscoverable
+
+    override suspend fun setDiscoveryPromptCompleted(completed: Boolean) {
+        isDiscoveryPromptCompleted.tryEmit(completed)
+    }
+
+    override fun isDiscoveryPromptCompleted(): Flow<Boolean> = isDiscoveryPromptCompleted
 
     override suspend fun setOptimizeImages(compress: Boolean) = doesCompressMedia.emit(compress)
 
