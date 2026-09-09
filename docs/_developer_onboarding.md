@@ -171,12 +171,10 @@ The SDK uses [rustls](https://github.com/rustls/rustls) for TLS, which is a pure
 `rustls-platform-verifier` library to our project, which provides platform-specific TLS certificate verification for rustls. This library uses the Android NDK's
 `TrustManager` to verify TLS certificates on Android.
 
-Though it's meant to be used through convoluted way of downloading the dependency, locating it in the
-cargo folder and using that path as a local maven repo as described [here](https://github.com/rustls/rustls-platform-verifier#android), we have
-added a script (`tools/sdk/update-rustls`) to download, unpack and add this AAR file locally to the `:libraries:matrix:impl` module instead.
+Though it's meant to be used through a convoluted way of downloading the dependency, locating it in the
+cargo folder and using that path as a local maven repo as described [here](https://github.com/rustls/rustls-platform-verifier#android), we vendor the `CertificateVerifier.kt` class directly in the `:libraries:rustls-tls` module to keep builds clean and self-contained.
 
-When should we run this script? Whenever we update the `rustls` dependency in the Rust SDK, we should check if the version of `rustls-platform-verifier`
-has changed as well, and if so, run this script to update the AAR file in our project. The SDK team should ping us when this happens.
+When updating the `rustls` dependency in the Rust SDK, check if the version or commit SHA of `rustls-platform-verifier` has changed. If so, update `CertificateVerifier.kt` and record the commit SHA in [`libraries/rustls-tls/UPDATED.md`](../libraries/rustls-tls/UPDATED.md) (see [`libraries/rustls-tls/README.md`](../libraries/rustls-tls/README.md) for details).
 
 ### The Android project
 
