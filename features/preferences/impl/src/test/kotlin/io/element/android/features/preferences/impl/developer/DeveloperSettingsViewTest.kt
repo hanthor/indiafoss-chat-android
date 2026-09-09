@@ -91,6 +91,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setDeveloperSettingsView(
     state: DeveloperSettingsState,
     onOpenShowkase: () -> Unit = EnsureNeverCalled(),
     onPushHistoryClick: () -> Unit = EnsureNeverCalled(),
+    onNeutrinoPeersClick: () -> Unit = EnsureNeverCalled(),
     onBackClick: () -> Unit = EnsureNeverCalled()
 ) {
     setContent {
@@ -98,6 +99,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setDeveloperSettingsView(
             state = state,
             onOpenShowkase = onOpenShowkase,
             onPushHistoryClick = onPushHistoryClick,
+            onNeutrinoPeersClick = onNeutrinoPeersClick,
             onBackClick = onBackClick,
         )
     }

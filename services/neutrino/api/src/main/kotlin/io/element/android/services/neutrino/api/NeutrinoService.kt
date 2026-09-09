@@ -77,4 +77,12 @@ interface NeutrinoService {
      * state in developer settings.
      */
     fun isCapturing(): Boolean
+
+    /**
+     * Tell the embedded node whether to advertise this user over the BLE mesh.
+     * When [discoverable] is `false` the node stops advertising, so nearby peers
+     * can no longer discover this user. Backs the "let people near you find you?"
+     * preference (ADR 0008).
+     */
+    suspend fun setDiscoverable(discoverable: Boolean)
 }
