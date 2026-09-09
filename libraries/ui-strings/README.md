@@ -2,4 +2,4 @@
 
 This module contains all the strings for the project.
 
-For more details, see [the dedicated README.md file](../../tools/localazy/README.md)
+For more details, see [`AGENTS.md`](../../AGENTS.md#strings--localisation)

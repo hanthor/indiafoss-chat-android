@@ -98,7 +98,10 @@ class DefaultFtueServiceTest {
         val sessionVerificationService = FakeSessionVerificationService()
         val permissionStateProvider = FakePermissionStateProvider(permissionGranted = true)
         val lockScreenService = FakeLockScreenService()
-        val preferences = InMemorySessionPreferencesStore(isDisplayNamePromptCompleted = false)
+        val preferences = InMemorySessionPreferencesStore(
+            isDisplayNamePromptCompleted = false,
+            isDiscoveryPromptCompleted = true,
+        )
         val service = createDefaultFtueService(
             sessionVerificationService = sessionVerificationService,
             permissionStateProvider = permissionStateProvider,
@@ -207,9 +210,11 @@ internal fun TestScope.createDefaultFtueService(
     permissionStateProvider: PermissionStateProvider = FakePermissionStateProvider(permissionGranted = false),
     lockScreenService: LockScreenService = FakeLockScreenService(),
     // Default to "prompt already done" so tests unrelated to the display-name step
-    // skip it; the dedicated test below flips this to exercise the step.
+    // skip it; the dedicated test below flips this to exercise the step. Same for the
+    // discovery opt-in prompt, so it doesn't insert itself into unrelated flows.
     sessionPreferencesStore: SessionPreferencesStore = InMemorySessionPreferencesStore(
         isDisplayNamePromptCompleted = true,
+        isDiscoveryPromptCompleted = true,
     ),
     // First version where notification permission is required
     sdkIntVersion: Int = Build.VERSION_CODES.TIRAMISU,

@@ -45,6 +45,7 @@ dependencies {
     implementation(projects.features.lockscreen.api)
     implementation(projects.libraries.permissions.api)
     implementation(projects.libraries.permissions.noop)
+    implementation(projects.services.neutrino.api)
     implementation(projects.services.toolbox.api)
     implementation(projects.appconfig)
 
