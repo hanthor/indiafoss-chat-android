@@ -16,6 +16,8 @@ class FakeStartChatNavigator(
     private val createNewRoomLambda: () -> Unit = {},
     private val showJoinRoomByAddressLambda: () -> Unit = {},
     private val dismissJoinRoomByAddressLambda: () -> Unit = {},
+    private val showScanQrCodeLambda: () -> Unit = {},
+    private val dismissScanQrCodeLambda: () -> Unit = {},
     private val openRoomDirectoryLambda: () -> Unit = {},
 ) : StartChatNavigator {
     override fun onRoomCreated(roomIdOrAlias: RoomIdOrAlias, serverNames: List<String>) {
@@ -32,6 +34,14 @@ class FakeStartChatNavigator(
 
     override fun onDismissJoinRoomByAddress() {
         dismissJoinRoomByAddressLambda()
+    }
+
+    override fun onShowScanQrCode() {
+        showScanQrCodeLambda()
+    }
+
+    override fun onDismissScanQrCode() {
+        dismissScanQrCodeLambda()
     }
 
     override fun onOpenRoomDirectory() {

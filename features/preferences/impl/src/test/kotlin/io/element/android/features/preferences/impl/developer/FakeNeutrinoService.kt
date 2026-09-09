@@ -47,6 +47,8 @@ class FakeNeutrinoService(
     }
 
     override fun isCapturing(): Boolean = capturing
+
+    override suspend fun setDiscoverable(discoverable: Boolean) = Unit
 }
 
 private const val A_CAPTURE_NAME = "neutrino-fed.pcap"
