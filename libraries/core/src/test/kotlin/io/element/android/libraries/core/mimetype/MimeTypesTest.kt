@@ -8,8 +8,8 @@
 
 package io.element.android.libraries.core.mimetype
 
-import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeAny
 import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeAnimatedImage
+import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeAny
 import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeApplication
 import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeAudio
 import io.element.android.libraries.core.mimetype.MimeTypes.isMimeTypeFile
