@@ -10,6 +10,7 @@
 
 package io.element.android.x.intent
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import com.google.common.truth.Truth.assertThat
@@ -29,8 +30,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.annotation.Config
 
+// Unit tests need Android resources, not the production app and native SDK startup.
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class DefaultIntentProviderTest {
     @Test
     fun `test getViewRoomIntent with data`() {
