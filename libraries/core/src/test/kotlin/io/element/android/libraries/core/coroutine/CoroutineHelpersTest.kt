@@ -9,6 +9,7 @@
 package io.element.android.libraries.core.coroutine
 
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -16,7 +17,6 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class CoroutineHelpersTest {
-
     @Test
     fun testParallelMap() = runTest {
         val input = listOf(1, 2, 3, 4, 5)
@@ -34,14 +34,17 @@ class CoroutineHelpersTest {
     @Test
     fun testParallelMapPreservesOrder() = runTest {
         val input = (1..10).toList()
-        val result = input.parallelMap { it.toString() }
+        val result = input.parallelMap {
+            delay((11 - it).toLong())
+            it.toString()
+        }
         assertThat(result).isEqualTo(listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"))
     }
 
     @Test
     fun testSuspendLazy() = runTest {
         var counter = 0
-        val lazyValue = suspendLazy {
+        val lazyValue = suspendLazy(coroutineContext) {
             counter++
             "result_$counter"
         }
@@ -70,7 +73,7 @@ class CoroutineHelpersTest {
     }
 
     @Test
-    fun testErrorFlow() = runTest {
+    fun testErrorFlow() {
         val testException = IllegalStateException("test error")
         val flow = errorFlow<Int>(testException)
 
