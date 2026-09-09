@@ -21,6 +21,7 @@ data class AdvancedSettingsState(
     val isSharePresenceEnabled: Boolean,
     val mediaOptimizationState: MediaOptimizationState?,
     val theme: ThemeOption,
+    val isDynamicColorsEnabled: Boolean,
     val availableThemeOptions: ImmutableList<ThemeOption>,
     val mediaPreviewConfigState: MediaPreviewConfigState,
     val liveLocationMinimumDistanceUpdate: Int?,

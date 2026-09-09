@@ -8,6 +8,7 @@
 
 package io.element.android.features.preferences.impl.advanced
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -92,6 +93,22 @@ fun AdvancedSettingsView(
                 state.eventSink(AdvancedSettingsEvents.SetTheme(themeOption))
             }
         )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ListItem(
+                headlineContent = {
+                    Text(text = stringResource(id = R.string.screen_advanced_settings_dynamic_colors_title))
+                },
+                supportingContent = {
+                    Text(text = stringResource(id = R.string.screen_advanced_settings_dynamic_colors_description))
+                },
+                trailingContent = ListItemContent.Switch(
+                    checked = state.isDynamicColorsEnabled,
+                ),
+                onClick = {
+                    state.eventSink(AdvancedSettingsEvents.SetDynamicColorsEnabled(!state.isDynamicColorsEnabled))
+                }
+            )
+        }
         ListItem(
             headlineContent = {
                 Text(text = stringResource(id = CommonStrings.action_view_source))

@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.map
 private val developerModeKey = booleanPreferencesKey("developerMode")
 private val customElementCallBaseUrlKey = stringPreferencesKey("elementCallBaseUrl")
 private val themeKey = stringPreferencesKey("theme")
+private val dynamicColorsKey = booleanPreferencesKey("dynamicColors")
 private val hideInviteAvatarsKey = booleanPreferencesKey("hideInviteAvatars")
 private val timelineMediaPreviewValueKey = stringPreferencesKey("timelineMediaPreviewValue")
 private val liveLocationMinimumDistanceUpdateKey = intPreferencesKey("liveLocationMinimumDistanceUpdate")
@@ -78,6 +79,19 @@ class DefaultAppPreferencesStore(
     override fun getThemeFlow(): Flow<String?> {
         return store.data.map { prefs ->
             prefs[themeKey]
+        }
+    }
+
+    override suspend fun setDynamicColorsEnabled(enabled: Boolean) {
+        store.edit { prefs ->
+            prefs[dynamicColorsKey] = enabled
+        }
+    }
+
+    override fun getDynamicColorsEnabledFlow(): Flow<Boolean> {
+        return store.data.map { prefs ->
+            // Default on: see the interface doc.
+            prefs[dynamicColorsKey] ?: true
         }
     }
 

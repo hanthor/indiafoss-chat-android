@@ -23,6 +23,15 @@ interface AppPreferencesStore {
     suspend fun setTheme(theme: String)
     fun getThemeFlow(): Flow<String?>
 
+    /**
+     * Material You dynamic colour: derive the palette from the system
+     * wallpaper instead of the brand colours. On by default for this build —
+     * a phone that already themes every app to its owner's wallpaper should
+     * theme this one too. Android 12+ only; ignored below it.
+     */
+    suspend fun setDynamicColorsEnabled(enabled: Boolean)
+    fun getDynamicColorsEnabledFlow(): Flow<Boolean>
+
     suspend fun setLiveLocationMinimumDistanceInMetersUpdate(value: Int)
     fun getLiveLocationMinimumDistanceInMetersUpdateFlow(): Flow<Int>
 
