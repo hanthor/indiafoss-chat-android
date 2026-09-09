@@ -11,9 +11,11 @@ import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import io.element.android.services.neutrino.api.CaptureResult
 import io.element.android.services.neutrino.api.NetworkAddressProvider
-import io.element.neutrino.DiscoveredPeer as NativeDiscoveredPeer
+import io.element.neutrino.NeutrinoHandle
+import io.mockk.every
 import io.mockk.mockk
 import org.junit.Test
+import io.element.neutrino.DiscoveredPeer as NativeDiscoveredPeer
 
 class DefaultNeutrinoServiceTest {
     private val context = mockk<Context>(relaxed = true)
@@ -67,13 +69,13 @@ class DefaultNeutrinoServiceTest {
     fun `discoveredPeers converts native peers correctly`() {
         val service = DefaultNeutrinoService(context, networkAddressProvider)
         // Set handle directly for testing mapping without native startup
-        val fakeHandle = mockk<io.element.neutrino.NeutrinoHandle>()
+        val fakeHandle = mockk<NeutrinoHandle>()
         val nativePeer = NativeDiscoveredPeer(
             serverName = "peer.local",
             displayName = "Peer Node",
             lastSeenMs = 123456789UL,
         )
-        io.mockk.every { fakeHandle.discoveredPeers() } returns listOf(nativePeer)
+        every { fakeHandle.discoveredPeers() } returns listOf(nativePeer)
         service.handle = fakeHandle
 
         val peers = service.discoveredPeers()
@@ -87,9 +89,9 @@ class DefaultNeutrinoServiceTest {
     @Test
     fun `serverName and lastError delegate to handle when present`() {
         val service = DefaultNeutrinoService(context, networkAddressProvider)
-        val fakeHandle = mockk<io.element.neutrino.NeutrinoHandle>()
-        io.mockk.every { fakeHandle.serverName() } returns "node.local"
-        io.mockk.every { fakeHandle.lastError() } returns "connection lost"
+        val fakeHandle = mockk<NeutrinoHandle>()
+        every { fakeHandle.serverName() } returns "node.local"
+        every { fakeHandle.lastError() } returns "connection lost"
         service.handle = fakeHandle
 
         assertThat(service.serverName()).isEqualTo("node.local")
