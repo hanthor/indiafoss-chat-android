@@ -26,6 +26,7 @@ import io.element.android.features.startchat.DefaultStartChatNavigator
 import io.element.android.features.startchat.api.StartChatEntryPoint
 import io.element.android.features.startchat.impl.joinbyaddress.JoinRoomByAddressNode
 import io.element.android.features.startchat.impl.root.StartChatNode
+import io.element.android.features.startchat.impl.scanqr.ScanQrNode
 import io.element.android.libraries.architecture.BackstackView
 import io.element.android.libraries.architecture.BaseFlowNode
 import io.element.android.libraries.architecture.OverlayView
@@ -59,6 +60,9 @@ class StartChatFlowNode(
 
         @Parcelize
         data object JoinByAddress : NavTarget
+
+        @Parcelize
+        data object ScanQrCode : NavTarget
     }
 
     private val callback: StartChatEntryPoint.Callback = callback()
@@ -91,6 +95,9 @@ class StartChatFlowNode(
             }
             NavTarget.JoinByAddress -> {
                 createNode<JoinRoomByAddressNode>(buildContext = buildContext, plugins = listOf(navigator))
+            }
+            NavTarget.ScanQrCode -> {
+                createNode<ScanQrNode>(buildContext = buildContext, plugins = listOf(navigator))
             }
         }
     }

@@ -78,7 +78,7 @@ You can run all the tests in the `androidTest` folders.
 It can be done using this command:
 
 ```bash
-./gradlew vector:connectedAndroidTest matrix-sdk-android:connectedAndroidTest
+./gradlew :app:connectedAndroidTest
 ```
 
 ## Stop Synapse
