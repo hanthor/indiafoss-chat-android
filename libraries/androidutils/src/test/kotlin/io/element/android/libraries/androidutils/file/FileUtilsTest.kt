@@ -13,6 +13,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.util.zip.GZIPInputStream
 
 class FileUtilsTest {
     @get:Rule
@@ -55,7 +56,7 @@ class FileUtilsTest {
     fun `getSizeOfFiles calculates total size recursively`() {
         val dir = temporaryFolder.newFolder("subfolder")
         val file1 = File(dir, "f1.txt").apply { writeText("12345") } // 5 bytes
-        val file2 = File(dir, "f2.txt").apply { writeText("123") }   // 3 bytes
+        val file2 = File(dir, "f2.txt").apply { writeText("123") } // 3 bytes
 
         val totalSize = dir.getSizeOfFiles()
 
@@ -70,11 +71,31 @@ class FileUtilsTest {
         val compressedFile = compressFile(file)
 
         assertThat(compressedFile).isNotNull()
-        assertThat(compressedFile!!.exists()).isTrue()
+        requireNotNull(compressedFile)
+        assertThat(compressedFile.exists()).isTrue()
         assertThat(compressedFile.name).isEqualTo("sample.txt.gz")
         assertThat(compressedFile.length()).isLessThan(file.length())
 
+        val recovered = GZIPInputStream(compressedFile.inputStream()).bufferedReader().use { it.readText() }
+        assertThat(recovered).isEqualTo(file.readText())
+
         // Cleanup
         compressedFile.safeDelete()
+    }
+
+    @Test
+    fun `failed rename preserves the original file`() {
+        val source = temporaryFolder.newFile("original.txt").apply { writeText("keep me") }
+        source.safeRenameTo(File(temporaryFolder.root, "missing-parent/destination.txt"))
+        assertThat(source.readText()).isEqualTo("keep me")
+    }
+
+    @Test
+    fun `compression failure preserves source when destination is a nonempty directory`() {
+        val source = temporaryFolder.newFile("source.txt").apply { writeText("keep me") }
+        temporaryFolder.newFolder("source.txt.gz").resolve("child").writeText("keep this too")
+        assertThat(compressFile(source)).isNull()
+        assertThat(source.readText()).isEqualTo("keep me")
+        assertThat(File(temporaryFolder.root, "source.txt.gz/child").readText()).isEqualTo("keep this too")
     }
 }
