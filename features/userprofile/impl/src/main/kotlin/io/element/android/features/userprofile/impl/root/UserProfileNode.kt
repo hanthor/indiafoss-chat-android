@@ -26,6 +26,7 @@ import io.element.android.libraries.architecture.inputs
 import io.element.android.libraries.di.SessionScope
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.isMeshUser
 import io.element.android.libraries.matrix.api.permalink.PermalinkBuilder
 import io.element.android.services.analytics.api.AnalyticsService
 
@@ -46,6 +47,15 @@ class UserProfileNode(
     private val callback = inputs<UserProfileNodeHelper.Callback>()
     private val presenter = presenterFactory.create(userId = inputs.userId)
     private val userProfileNodeHelper = UserProfileNodeHelper(inputs.userId)
+
+    // A mesh user's own scannable contact code (ADR 0008 Phase 2): prefer a permalink,
+    // fall back to the raw MXID. Non-mesh users have no code. The view only surfaces it
+    // on the current user's own profile.
+    private val myMeshCodeData: String? = if (inputs.userId.isMeshUser) {
+        permalinkBuilder.permalinkForUser(inputs.userId).getOrNull() ?: inputs.userId.value
+    } else {
+        null
+    }
 
     init {
         lifecycle.subscribe(
@@ -78,6 +88,7 @@ class UserProfileNode(
             onStartCall = callback::startCall,
             openAvatarPreview = callback::navigateToAvatarPreview,
             onVerifyClick = callback::startVerifyUserFlow,
+            myMeshCodeData = myMeshCodeData,
         )
     }
 }

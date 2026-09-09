@@ -58,8 +58,10 @@ class IntentResolver(
             ?.let { loginIntentResolver.parse(it) }
         if (mobileLoginData != null) return ResolvedIntent.Login(mobileLoginData)
 
-        // External link clicked? (matrix.to, element.io, etc.)
+        // External link clicked? (matrix.to, element.io, etc.) — IndiaFOSS Companion
+        // payloads (indiafoss://chat, indiafoss://friend) are rewritten to matrix.to first.
         val permalinkData = actionViewData
+            ?.let { IndiafossLinks.toMatrixTo(it) ?: it }
             ?.let { permalinkParser.parse(it) }
             ?.takeIf { it !is PermalinkData.FallbackLink }
         if (permalinkData != null) return ResolvedIntent.Permalink(permalinkData)

@@ -9,6 +9,8 @@
 package io.element.android.features.home.impl
 
 import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Parcelable
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
@@ -148,6 +150,12 @@ class HomeFlowNode(
         when (roomListMenuAction) {
             RoomListMenuAction.InviteFriends -> {
                 inviteFriendsUseCase.execute(activity)
+            }
+            RoomListMenuAction.Conference -> {
+                // Opens the in-app IndiaFOSS Companion (ConferenceActivity in the app module).
+                activity.startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("indiafoss://conference/")).setPackage(activity.packageName)
+                )
             }
             RoomListMenuAction.ReportBug -> {
                 callback.navigateToBugReport()

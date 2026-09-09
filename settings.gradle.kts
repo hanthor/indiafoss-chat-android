@@ -18,21 +18,12 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         mavenLocal()
-        // Neutrino bindings are published to GitHub Packages on element-hq/neutrino
-        // repository. Authenticate with a token that has the read:packages scope, either via the
-        // gpr.user/gpr.key Gradle properties (e.g. in ~/.gradle/gradle.properties) or via the
-        // GITHUB_ACTOR/GITHUB_TOKEN environment variables (used on CI).
-        maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/element-hq/neutrino-iroh")
-            credentials {
-                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
-                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
-            }
-            content {
-                includeGroup("io.element.neutrino")
-            }
-        }
+        // Neutrino bindings used to come from GitHub Packages on element-hq/neutrino,
+        // which 401s on anonymous requests despite the source being public — every
+        // contributor and CI run needed a personal read:packages token (issue #3).
+        // services/neutrino/impl now fetches the .aar directly as a local file
+        // dependency from a public IndiaFOSS Companion release build instead, so
+        // no Maven repository (or credentials) are needed for it at all.
         maven {
             url = uri("https://www.jitpack.io")
             content {

@@ -10,6 +10,7 @@ package io.element.android.features.startchat
 
 import com.bumble.appyx.core.plugin.Plugin
 import com.bumble.appyx.navmodel.backstack.BackStack
+import com.bumble.appyx.navmodel.backstack.operation.pop
 import com.bumble.appyx.navmodel.backstack.operation.push
 import io.element.android.features.startchat.impl.StartChatFlowNode.NavTarget
 import io.element.android.libraries.architecture.overlay.Overlay
@@ -22,6 +23,8 @@ interface StartChatNavigator : Plugin {
     fun onCreateNewRoom()
     fun onShowJoinRoomByAddress()
     fun onDismissJoinRoomByAddress()
+    fun onShowScanQrCode()
+    fun onDismissScanQrCode()
     fun onOpenRoomDirectory()
 }
 
@@ -46,5 +49,13 @@ class DefaultStartChatNavigator(
 
     override fun onDismissJoinRoomByAddress() {
         overlay.hide()
+    }
+
+    override fun onShowScanQrCode() {
+        backstack.push(NavTarget.ScanQrCode)
+    }
+
+    override fun onDismissScanQrCode() {
+        backstack.pop()
     }
 }

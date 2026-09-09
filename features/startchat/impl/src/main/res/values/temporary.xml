@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="screen_start_chat_scan_qr_action">"Scan a contact code"</string>
+    <string name="screen_start_chat_scan_qr_title">"Scan a contact code"</string>
+    <string name="screen_start_chat_scan_qr_camera_permission_title">"Camera access needed"</string>
+    <string name="screen_start_chat_scan_qr_camera_permission_description">"Allow camera access to scan someone's contact code and start a chat."</string>
+    <string name="screen_start_chat_scan_qr_grant_permission_action">"Allow camera access"</string>
+    <string name="screen_start_chat_scan_qr_invalid">"That's not a valid contact code."</string>
+    <string name="screen_start_chat_scan_qr_try_again">"Try again"</string>
+</resources>
