@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="screen_advanced_settings_nearby_discovery_section_title">"Nearby discovery"</string>
+    <string name="screen_advanced_settings_discoverable_toggle_title">"Let people near you find you?"</string>
+    <string name="screen_advanced_settings_discoverable_toggle_description">"When on, nearby people can discover you over the mesh by your display name. Turn off to stay hidden."</string>
+</resources>

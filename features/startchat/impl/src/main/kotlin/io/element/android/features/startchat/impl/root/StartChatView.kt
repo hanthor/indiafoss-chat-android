@@ -60,6 +60,7 @@ fun StartChatView(
     onOpenDM: (RoomId) -> Unit,
     onInviteFriendsClick: () -> Unit,
     onJoinByAddressClick: () -> Unit,
+    onScanQrCodeClick: () -> Unit,
     onRoomDirectorySearchClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -103,6 +104,7 @@ fun StartChatView(
                     onNewRoomClick = onNewRoomClick,
                     onInvitePeopleClick = onInviteFriendsClick,
                     onJoinByAddressClick = onJoinByAddressClick,
+                    onScanQrCodeClick = onScanQrCodeClick,
                     onRoomDirectorySearchClick = onRoomDirectorySearchClick,
                     onDmClick = onOpenDM,
                 )
@@ -165,6 +167,7 @@ private fun CreateRoomActionButtonsList(
     onNewRoomClick: () -> Unit,
     onInvitePeopleClick: () -> Unit,
     onJoinByAddressClick: () -> Unit,
+    onScanQrCodeClick: () -> Unit,
     onRoomDirectorySearchClick: () -> Unit,
     onDmClick: (RoomId) -> Unit,
 ) {
@@ -195,6 +198,13 @@ private fun CreateRoomActionButtonsList(
                 iconRes = CompoundDrawables.ic_compound_room,
                 text = stringResource(R.string.screen_start_chat_join_room_by_address_action),
                 onClick = onJoinByAddressClick,
+            )
+        }
+        item {
+            CreateRoomActionButton(
+                iconRes = CompoundDrawables.ic_compound_qr_code,
+                text = stringResource(R.string.screen_start_chat_scan_qr_action),
+                onClick = onScanQrCodeClick,
             )
         }
         if (state.userListState.recentDirectRooms.isNotEmpty()) {
@@ -258,6 +268,7 @@ internal fun StartChatViewPreview(@PreviewParameter(StartChatStateProvider::clas
             onNewRoomClick = {},
             onOpenDM = {},
             onJoinByAddressClick = {},
+            onScanQrCodeClick = {},
             onInviteFriendsClick = {},
             onRoomDirectorySearchClick = {},
         )

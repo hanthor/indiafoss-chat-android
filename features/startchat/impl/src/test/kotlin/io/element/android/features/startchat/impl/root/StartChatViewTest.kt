@@ -138,6 +138,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setStartChatView(
     onOpenDM: (RoomId) -> Unit = EnsureNeverCalledWithParam(),
     onInviteFriendsClick: () -> Unit = EnsureNeverCalled(),
     onJoinRoomByAddressClick: () -> Unit = EnsureNeverCalled(),
+    onScanQrCodeClick: () -> Unit = EnsureNeverCalled(),
     onRoomDirectorySearchClick: () -> Unit = EnsureNeverCalled(),
 ) {
     setContent {
@@ -148,6 +149,7 @@ private fun AndroidComposeUiTest<ComponentActivity>.setStartChatView(
             onOpenDM = onOpenDM,
             onInviteFriendsClick = onInviteFriendsClick,
             onJoinByAddressClick = onJoinRoomByAddressClick,
+            onScanQrCodeClick = onScanQrCodeClick,
             onRoomDirectorySearchClick = onRoomDirectorySearchClick,
         )
     }
