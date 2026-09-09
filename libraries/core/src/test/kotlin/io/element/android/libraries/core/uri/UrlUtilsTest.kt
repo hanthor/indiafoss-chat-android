@@ -14,7 +14,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class UrlUtilsTest {
-
     @Test
     fun `isValidUrl returns true for valid URLs`() {
         assertTrue("https://element.io".isValidUrl())

@@ -24,7 +24,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MimeTypesTest {
-
     @Test
     fun `normalizeMimeType converts bad jpg to jpeg`() {
         assertEquals(MimeTypes.Jpeg, MimeTypes.BadJpg.normalizeMimeType())

@@ -13,7 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BooleansTest {
-
     @Test
     fun `orTrue returns boolean value or true if null`() {
         val trueBool: Boolean? = true
