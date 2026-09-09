@@ -25,6 +25,7 @@ data class AdvancedSettingsState(
     val availableThemeOptions: ImmutableList<ThemeOption>,
     val mediaPreviewConfigState: MediaPreviewConfigState,
     val liveLocationMinimumDistanceUpdate: Int?,
+    val isDiscoverable: Boolean,
     val eventSink: (AdvancedSettingsEvents) -> Unit
 )
 

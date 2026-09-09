@@ -43,5 +43,20 @@ interface SessionPreferencesStore {
     suspend fun setDisplayNamePromptCompleted(completed: Boolean)
     fun isDisplayNamePromptCompleted(): Flow<Boolean>
 
+    /**
+     * Whether the local user is discoverable by nearby peers, i.e. whether the
+     * embedded node advertises this user over the BLE mesh. Defaults to `true`
+     * (discoverable); when `false` the node should stop advertising.
+     */
+    suspend fun setDiscoverable(discoverable: Boolean)
+    fun isDiscoverable(): Flow<Boolean>
+
+    /**
+     * Whether the one-time "let people near you find you?" prompt shown at first
+     * launch has been answered, so it isn't shown again.
+     */
+    suspend fun setDiscoveryPromptCompleted(completed: Boolean)
+    fun isDiscoveryPromptCompleted(): Flow<Boolean>
+
     suspend fun clear()
 }

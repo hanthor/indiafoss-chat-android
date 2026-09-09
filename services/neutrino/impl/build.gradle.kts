@@ -32,7 +32,7 @@ setupDependencyInjection()
 // patches, rather than plain upstream — see version.json in that repo for the
 // exact pinned rev.
 val neutrinoVersion = libs.versions.neutrino.get()
-val neutrinoSha256 = "fbbaed33a59fad350fcd4859940bd22ee2d12001932663978b3ff832df7a28ca"
+val neutrinoSha256 = "527528d3e8b392a22368debc7fc4a5ddd98da730b3e073866363ea9680b149bc"
 val neutrinoAarName = "neutrino-bindings-$neutrinoVersion.aar"
 val neutrinoLibsDir = layout.projectDirectory.dir("libs")
 val neutrinoAar = neutrinoLibsDir.file(neutrinoAarName)

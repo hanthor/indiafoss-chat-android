@@ -23,6 +23,7 @@ import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.services.neutrino.api.NeutrinoService
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
@@ -37,6 +38,7 @@ class AdvancedSettingsPresenter(
     @SessionCoroutineScope
     private val sessionCoroutineScope: CoroutineScope,
     private val featureFlagService: FeatureFlagService,
+    private val neutrinoService: NeutrinoService,
 ) : Presenter<AdvancedSettingsState> {
     @Composable
     override fun present(): AdvancedSettingsState {
@@ -45,6 +47,9 @@ class AdvancedSettingsPresenter(
         }.collectAsState(initial = false)
         val isSharePresenceEnabled by remember {
             sessionPreferencesStore.isSharePresenceEnabled()
+        }.collectAsState(initial = true)
+        val isDiscoverable by remember {
+            sessionPreferencesStore.isDiscoverable()
         }.collectAsState(initial = true)
         val isBlackThemeAllowed by remember {
             featureFlagService.isFeatureEnabledFlow(FeatureFlags.AllowBlackTheme)
@@ -137,6 +142,10 @@ class AdvancedSettingsPresenter(
                 is AdvancedSettingsEvents.SetVideoUploadQuality -> sessionCoroutineScope.launch {
                     sessionPreferencesStore.setVideoCompressionPreset(event.videoPreset)
                 }
+                is AdvancedSettingsEvents.SetDiscoverable -> sessionCoroutineScope.launch {
+                    sessionPreferencesStore.setDiscoverable(event.discoverable)
+                    neutrinoService.setDiscoverable(event.discoverable)
+                }
             }
         }
 
@@ -149,6 +158,7 @@ class AdvancedSettingsPresenter(
             availableThemeOptions = availableThemeOptions,
             mediaPreviewConfigState = mediaPreviewConfigState,
             liveLocationMinimumDistanceUpdate = liveLocationMinimumDistanceUpdate,
+            isDiscoverable = isDiscoverable,
             eventSink = ::handleEvent,
         )
     }

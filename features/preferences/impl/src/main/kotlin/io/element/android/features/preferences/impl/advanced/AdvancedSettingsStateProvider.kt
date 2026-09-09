@@ -26,6 +26,7 @@ open class AdvancedSettingsStateProvider : PreviewParameterProvider<AdvancedSett
             aAdvancedSettingsState(timelineMediaPreviewValue = MediaPreviewValue.Off),
             aAdvancedSettingsState(setHideInviteAvatarsAction = AsyncAction.Loading),
             aAdvancedSettingsState(setTimelineMediaPreviewAction = AsyncAction.Loading),
+            aAdvancedSettingsState(isDiscoverable = false),
             aAdvancedSettingsState(mediaOptimizationState = MediaOptimizationState.Split(
                 compressImages = true,
                 videoPreset = VideoCompressionPreset.HIGH,
@@ -45,6 +46,7 @@ fun aAdvancedSettingsState(
     liveLocationMinimumDistanceUpdate: Int? = 50,
     setTimelineMediaPreviewAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     setHideInviteAvatarsAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
+    isDiscoverable: Boolean = true,
     eventSink: (AdvancedSettingsEvents) -> Unit = {},
 ) = AdvancedSettingsState(
     isDeveloperModeEnabled = isDeveloperModeEnabled,
@@ -60,5 +62,6 @@ fun aAdvancedSettingsState(
         setHideInviteAvatarsAction = setHideInviteAvatarsAction
     ),
     liveLocationMinimumDistanceUpdate = liveLocationMinimumDistanceUpdate,
+    isDiscoverable = isDiscoverable,
     eventSink = eventSink
 )

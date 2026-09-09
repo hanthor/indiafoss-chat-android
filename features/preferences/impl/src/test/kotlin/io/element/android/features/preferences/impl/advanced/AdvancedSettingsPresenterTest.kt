@@ -13,6 +13,7 @@ import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.compound.theme.Theme
+import io.element.android.features.preferences.impl.developer.FakeNeutrinoService
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
@@ -21,6 +22,7 @@ import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
+import io.element.android.services.neutrino.api.NeutrinoService
 import io.element.android.tests.testutils.WarmUpRule
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
@@ -406,11 +408,13 @@ class AdvancedSettingsPresenterTest {
         sessionPreferencesStore: InMemorySessionPreferencesStore = InMemorySessionPreferencesStore(),
         mediaPreviewConfigStateStore: MediaPreviewConfigStateStore = FakeMediaPreviewConfigStateStore(),
         featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(),
+        neutrinoService: NeutrinoService = FakeNeutrinoService(),
     ) = AdvancedSettingsPresenter(
         appPreferencesStore = appPreferencesStore,
         sessionPreferencesStore = sessionPreferencesStore,
         mediaPreviewConfigStateStore = mediaPreviewConfigStateStore,
         featureFlagService = featureFlagService,
+        neutrinoService = neutrinoService,
         sessionCoroutineScope = this,
     )
 }
