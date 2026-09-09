@@ -18,7 +18,10 @@ class HashTest {
         val hash = input.hash()
         assertThat(hash).isNotNull()
         assertThat(hash.length).isEqualTo(128)
-        assertThat(hash).isEqualTo("b10a8db164e0754105b7a99be72e3fe5daf3300c1b23747e2ee47365d6cebe092424e97686345b2f326396a580c4c32f4c8d85f6623976370e443988cb7e42d7")
+        assertThat(hash).isEqualTo(
+            "309ecc489c12d6eb4cc40f50c902f2b4d0ed77ee5111a7c7a9bcd3ca86d4cd86f" +
+                "989dd35bc5ff499670da34255b45b0cfd830e81f605dcf7dc5542e93ae9cd76f"
+        )
     }
 
     @Test
@@ -31,6 +34,9 @@ class HashTest {
     fun `test empty string hash`() {
         val hash = "".hash()
         assertThat(hash).isNotNull()
-        assertThat(hash.length).isEqualTo(128)
+        assertThat(hash).isEqualTo(
+            "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce" +
+                "47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+        )
     }
 }
