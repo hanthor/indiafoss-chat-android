@@ -1,0 +1,121 @@
+name: Publish Android preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: chat-preview-publication
+  cancel-in-progress: false
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx4g
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require passing CI for this exact main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$GITHUB_SHA&per_page=100" > "$RUNNER_TEMP/source-runs.json"
+          python3 - "$RUNNER_TEMP/source-runs.json" <<'PY'
+          import json, sys
+          runs = json.load(open(sys.argv[1]))['workflow_runs']
+          for name in ('Test', 'Code Quality Checks', 'APK Build'):
+              matching = [run for run in runs if run['name'] == name and run['head_branch'] == 'main' and run['event'] == 'push']
+              if not matching or max(matching, key=lambda run: run['id'])['conclusion'] != 'success':
+                  raise SystemExit(f'{name} must pass on the exact main commit before publication')
+          PY
+      - name: Free disk space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          tool-cache: true
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: true
+          swap-storage: false
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+        with:
+          cache-read-only: true
+      - name: Set preview identity
+        run: |
+          echo "NIGHTLY_CODE=$((20270000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
+          echo "NIGHTLY_VERSION=2026.${GITHUB_RUN_NUMBER}-${GITHUB_SHA:0:7}" >> "$GITHUB_ENV"
+      - name: Build unsigned F-Droid-flavour release APK
+        env:
+          GITHUB_TOKEN: ${{ secrets.ELEMENT_BOT_TOKEN_NEUTRINO }}
+        run: ./gradlew :app:assembleFdroidRelease -PindiafossNightlyCode="$NIGHTLY_CODE" -PindiafossNightlyVersion="$NIGHTLY_VERSION" -PallWarningsAsErrors=true --stacktrace --no-configuration-cache
+      - name: Sign and verify the universal APK
+        env:
+          NIGHTLY_KEYSTORE_BASE64: ${{ secrets.NIGHTLY_KEYSTORE_BASE64 }}
+          NIGHTLY_KEYSTORE_PASSWORD: ${{ secrets.NIGHTLY_KEYSTORE_PASSWORD }}
+          NIGHTLY_KEY_ALIAS: ${{ vars.NIGHTLY_KEY_ALIAS }}
+          NIGHTLY_CERT_SHA256: ${{ vars.NIGHTLY_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          export APKSIGNER="$tools/apksigner" ZIPALIGN="$tools/zipalign"
+          mapfile -t apks < <(find app/build/outputs/apk/fdroid/release -name '*-universal-release-unsigned.apk')
+          test "${#apks[@]}" -eq 1
+          # ABI outputs multiply the Gradle base code by ten; universal uses suffix zero.
+          export NIGHTLY_CODE=$((NIGHTLY_CODE * 10))
+          python3 scripts/sign-nightly.py "${apks[0]}" dist/indiafoss-chat-android.apk
+          "$tools/aapt" dump badging dist/indiafoss-chat-android.apk > "$RUNNER_TEMP/apk-badging.txt"
+          python3 - "$RUNNER_TEMP/apk-badging.txt" <<'PY'
+          import os, pathlib, re, sys
+          report = pathlib.Path(sys.argv[1]).read_text()
+          expected = ("org.indiafoss.chat", os.environ['NIGHTLY_CODE'], os.environ['NIGHTLY_VERSION'])
+          match = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", report)
+          if not match or match.groups() != expected:
+              raise SystemExit('APK package/version does not match the preview identity')
+          PY
+      - name: Publish verified download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NIGHTLY_CERT_SHA256: ${{ vars.NIGHTLY_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, pathlib
+          pathlib.Path('dist/release.md').write_text(f'''IndiaFOSS Chat Android preview {os.environ['NIGHTLY_VERSION']}.
+
+          Download **indiafoss-chat-android.apk** below. This is the dedicated Matrix/P2P chat app; the Companion is a separate app for your schedule, plan, map and contact card.
+
+          Android 7.0 or later. Universal APK, F-Droid build flavour; this is a GitHub preview, not an F-Droid store listing. Allow installation from your browser when Android asks.
+
+          Source: `{os.environ['GITHUB_SHA']}`. Source CI passed before publication; APK package, version, alignment and signature were verified. Physical-device mesh/background/recovery acceptance remains tracked in issues #45 and #49.
+
+          Package: `org.indiafoss.chat`. Persistent preview signing certificate SHA-256: `{os.environ['NIGHTLY_CERT_SHA256']}`. Keep the same signing identity for future updates. Old debug-package builds are separate installs; their account data does not migrate automatically.
+
+          The SHA-256 checksum and signing metadata are attached. Open the Companion: https://hanthor.github.io/indiafoss-companion/
+          ''')
+          PY
+          tag="preview-${NIGHTLY_VERSION}"
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json
+          if gh release view nightly >/dev/null 2>&1; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/nightly" -f sha="$GITHUB_SHA" -F force=true
+            gh release upload nightly dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json --clobber
+            gh release edit nightly --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md --prerelease
+          else
+            gh release create nightly --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json
+          fi
