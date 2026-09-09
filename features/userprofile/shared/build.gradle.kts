@@ -34,6 +34,7 @@ dependencies {
     implementation(projects.libraries.featureflag.api)
     implementation(projects.libraries.permissions.api)
     implementation(projects.libraries.preferences.api)
+    implementation(projects.libraries.qrcode)
     implementation(projects.libraries.testtags)
     api(projects.features.userprofile.api)
     api(projects.services.apperror.api)

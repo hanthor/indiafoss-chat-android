@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Mesh identity (ADR 0008): a mesh user id is a 64-hex node id; the profile
+         shows a short, readable code and keeps the full id one tap away. -->
+    <string name="screen_user_profile_mesh_identity_label">"Mesh identity · tap to copy full ID"</string>
+    <!-- "My code": the current user shows their own mesh contact QR so someone next
+         to them can scan it and start a chat (ADR 0008 Phase 2). -->
+    <string name="screen_user_profile_my_mesh_code_action">"My code"</string>
+    <string name="screen_user_profile_my_mesh_code_title">"Your contact code"</string>
+    <string name="screen_user_profile_my_mesh_code_caption">"Have someone nearby scan this to start a chat with you on the mesh."</string>
+</resources>

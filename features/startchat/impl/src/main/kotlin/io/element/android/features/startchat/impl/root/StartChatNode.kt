@@ -57,6 +57,7 @@ class StartChatNode(
                 navigator.onRoomCreated(roomIdOrAlias = it.toRoomIdOrAlias(), serverNames = emptyList())
             },
             onJoinByAddressClick = navigator::onShowJoinRoomByAddress,
+            onScanQrCodeClick = navigator::onShowScanQrCode,
             onInviteFriendsClick = { invitePeople(activity) },
             onRoomDirectorySearchClick = navigator::onOpenRoomDirectory
         )

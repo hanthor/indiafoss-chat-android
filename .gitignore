@@ -115,3 +115,6 @@ lint/tmp/
 .DS_Store
 
 checkouts/**
+
+# Downloaded by services/neutrino/impl/build.gradle.kts (fetchNeutrinoBindings).
+services/neutrino/impl/libs/
