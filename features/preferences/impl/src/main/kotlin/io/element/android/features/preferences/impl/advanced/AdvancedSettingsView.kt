@@ -202,6 +202,7 @@ fun AdvancedSettingsView(
             }
         }
 
+        NearbyDiscovery(state)
         ModerationAndSafety(state)
         if (state.liveLocationMinimumDistanceUpdate != null) {
             LiveLocationUpdatesSection(
@@ -269,6 +270,27 @@ private fun VideoQualitySelectorDialog(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NearbyDiscovery(
+    state: AdvancedSettingsState,
+    modifier: Modifier = Modifier,
+) {
+    PreferenceCategory(
+        modifier = modifier,
+        title = stringResource(R.string.screen_advanced_settings_nearby_discovery_section_title),
+        showTopDivider = true,
+    ) {
+        PreferenceSwitch(
+            title = stringResource(R.string.screen_advanced_settings_discoverable_toggle_title),
+            subtitle = stringResource(R.string.screen_advanced_settings_discoverable_toggle_description),
+            isChecked = state.isDiscoverable,
+            onCheckedChange = {
+                state.eventSink(AdvancedSettingsEvents.SetDiscoverable(it))
+            },
+        )
     }
 }
 

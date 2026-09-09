@@ -10,4 +10,8 @@
     <string name="screen_set_display_name_subtitle">"This is how nearby people discover you. You can change it later."</string>
     <string name="screen_set_display_name_label">"Display name"</string>
     <string name="screen_set_display_name_too_long">"A little shorter, please (max 20 bytes)."</string>
+    <string name="screen_discovery_opt_in_title">"Let people near you find you?"</string>
+    <string name="screen_discovery_opt_in_subtitle">"When discoverable, nearby people can find you over the mesh by your display name. You can change this later in Advanced settings."</string>
+    <string name="screen_discovery_opt_in_discoverable_action">"Make me discoverable"</string>
+    <string name="screen_discovery_opt_in_hidden_action">"Stay hidden"</string>
 </resources>

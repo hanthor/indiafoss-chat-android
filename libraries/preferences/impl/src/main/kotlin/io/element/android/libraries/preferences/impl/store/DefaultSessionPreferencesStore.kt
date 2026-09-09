@@ -46,6 +46,8 @@ class DefaultSessionPreferencesStore(
     private val renderTypingNotificationsKey = booleanPreferencesKey("renderTypingNotifications")
     private val skipSessionVerification = booleanPreferencesKey("skipSessionVerification")
     private val displayNamePromptCompleted = booleanPreferencesKey("displayNamePromptCompleted")
+    private val discoverable = booleanPreferencesKey("discoverable")
+    private val discoveryPromptCompleted = booleanPreferencesKey("discoveryPromptCompleted")
     private val compressImages = booleanPreferencesKey("compressMedia")
     private val compressMediaPreset = stringPreferencesKey("compressMediaPreset")
 
@@ -90,6 +92,12 @@ class DefaultSessionPreferencesStore(
 
     override suspend fun setDisplayNamePromptCompleted(completed: Boolean) = update(displayNamePromptCompleted, completed)
     override fun isDisplayNamePromptCompleted(): Flow<Boolean> = get(displayNamePromptCompleted) { false }
+
+    override suspend fun setDiscoverable(discoverable: Boolean) = update(this.discoverable, discoverable)
+    override fun isDiscoverable(): Flow<Boolean> = get(discoverable) { true }
+
+    override suspend fun setDiscoveryPromptCompleted(completed: Boolean) = update(discoveryPromptCompleted, completed)
+    override fun isDiscoveryPromptCompleted(): Flow<Boolean> = get(discoveryPromptCompleted) { false }
 
     override suspend fun setOptimizeImages(compress: Boolean) = update(compressImages, compress)
     override fun doesOptimizeImages(): Flow<Boolean> = get(compressImages) { true }
