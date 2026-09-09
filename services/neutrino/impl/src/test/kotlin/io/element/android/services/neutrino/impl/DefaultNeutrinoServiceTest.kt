@@ -83,7 +83,7 @@ class DefaultNeutrinoServiceTest {
         assertThat(peers).hasSize(1)
         assertThat(peers[0].serverName).isEqualTo("peer.local")
         assertThat(peers[0].displayName).isEqualTo("Peer Node")
-        assertThat(peers[0].lastSeenMs).isEqualTo(123456789L)
+        assertThat(peers[0].lastSeenMs).isEqualTo(123_456_789L)
     }
 
     @Test
