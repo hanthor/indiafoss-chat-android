@@ -41,7 +41,11 @@ val neutrinoVersion = libs.versions.neutrino.get()
 val buildNumber = providers.of(GitCommitCountValueSource::class.java) {
     parameters.workingDir.set(rootProject.layout.projectDirectory)
 }.get()
-val fullVersionName = "${Versions.VERSION_NAME}-r$buildNumber+neutrino.$neutrinoVersion"
+val nightlyCode = providers.gradleProperty("indiafossNightlyCode").orNull?.toInt()?.also {
+    require(it in 20_270_001..99_999_999) { "Invalid IndiaFOSS nightly version code" }
+}
+val fullVersionName = providers.gradleProperty("indiafossNightlyVersion").orNull
+    ?: "${Versions.VERSION_NAME}-r$buildNumber+neutrino.$neutrinoVersion"
 
 base {
     archivesName = "element-x-android-neutrino-$fullVersionName"
@@ -53,7 +57,7 @@ android {
     defaultConfig {
         applicationId = BuildTimeConfig.APPLICATION_ID
         targetSdk = Versions.TARGET_SDK
-        versionCode = Versions.VERSION_CODE
+        versionCode = nightlyCode ?: Versions.VERSION_CODE
         versionName = fullVersionName
 
         // Keep abiFilter for the universalApk
@@ -122,7 +126,8 @@ android {
                 "login_redirect_scheme",
                 oAuthRedirectSchemeBase,
             )
-            signingConfig = signingConfigs.getByName("debug")
+            // Public previews are signed and verified outside Gradle with the protected nightly key.
+            signingConfig = if (nightlyCode == null) signingConfigs.getByName("debug") else null
 
             optimization {
                 enable = true
