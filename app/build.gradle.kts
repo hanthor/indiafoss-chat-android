@@ -54,6 +54,8 @@ base {
 android {
     namespace = "io.element.android.x"
 
+    testOptions.unitTests.isIncludeAndroidResources = true
+
     defaultConfig {
         applicationId = BuildTimeConfig.APPLICATION_ID
         targetSdk = Versions.TARGET_SDK

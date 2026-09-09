@@ -8,6 +8,7 @@
 package io.element.android.x.intent
 
 import android.app.Activity
+import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import com.google.common.truth.Truth.assertThat
@@ -16,9 +17,11 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowToast
 
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class)
 class SafeUriHandlerTest {
     @Test
     fun `openUri opens intent with view action`() {
