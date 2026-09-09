@@ -4,6 +4,10 @@
 > United. Element is a trademark of Element Creations Ltd; this app is renamed
 > and re-identified (`org.indiafoss.chat`) and ships no Element branding.
 
+[**Download the Android preview APK**](https://github.com/hanthor/indiafoss-chat-android/releases/download/nightly/indiafoss-chat-android.apk) · [Release notes and checksums](https://github.com/hanthor/indiafoss-chat-android/releases/tag/nightly) · [Open the Companion](https://hanthor.github.io/indiafoss-companion/)
+
+Android 7.0 or later. Download the APK on your phone, open it and allow installation from your browser when prompted. Chat is a separate app from the Companion. This is a preview; physical-device mesh, background and recovery acceptance is tracked in #45 and #49. [Publishing and signing](docs/preview-release.md).
+
 Fork of [element-x-android-neutrino](https://github.com/element-hq/element-x-android-neutrino)
 (itself a P2P fork of Element X Android `v26.05.2` with the embedded
 [Neutrino](https://github.com/element-hq/neutrino) homeserver), imported at
@@ -22,10 +26,9 @@ upstream commit `94cd8274`, aligned with the
   is reachable from the launcher shortcut "Conference" or
   `indiafoss://conference/<route>`; chat links inside it hand back to the
   messenger.
-- **E2EE.** Element X's Megolm encryption is untouched for accounts on public
-  homeservers. On the Neutrino mesh, rooms remain unencrypted until the
-  homeserver grows the device-key and to-device endpoints — see the scope in
-  the companion's [`docs/neutrino-e2ee.md`](https://github.com/hanthor/indiafoss-companion/blob/main/docs/neutrino-e2ee.md).
+- **E2EE.** Public homeservers use Element X's Matrix encryption. The pinned
+  Neutrino bindings implement mesh E2EE; installed-device interoperability,
+  media and recovery still require the acceptance evidence in #45 and #49.
 
 ## Building
 
