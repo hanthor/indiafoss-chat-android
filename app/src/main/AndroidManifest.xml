@@ -26,6 +26,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"
         android:maxSdkVersion="30" />
 
+    <!-- The native IndiaFOSS Companion: conference routes open there when it is installed. -->
+    <queries>
+        <package android:name="org.indiafoss.companion.nativeapp" />
+    </queries>
+
     <application
         android:name=".ElementXApplication"
         android:allowBackup="false"
