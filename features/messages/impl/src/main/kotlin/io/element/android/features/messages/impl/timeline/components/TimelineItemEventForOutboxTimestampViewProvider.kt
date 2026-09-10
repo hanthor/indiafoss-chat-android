@@ -20,7 +20,7 @@ import io.element.android.libraries.outbox.api.OutboxSummary
 class TimelineItemEventForOutboxTimestampViewProvider : PreviewParameterProvider<TimelineItem.Event> {
     override val values: Sequence<TimelineItem.Event>
         get() = sequenceOf(
-            anOutboxTimelineItemEvent(OutboxState.ServerAccepted(EventId("$eventId"))),
+            anOutboxTimelineItemEvent(OutboxState.ServerAccepted(EventId("\$eventId"))),
             anOutboxTimelineItemEvent(OutboxState.Uncertain),
             anOutboxTimelineItemEvent(
                 state = OutboxState.Uncertain,

@@ -27,6 +27,6 @@ class ReadReceiptViewStateOutboxProvider : PreviewParameterProvider<ReadReceiptV
         )
 }
 
-private fun anEventId() = EventId("$eventId")
+private fun anEventId() = EventId("\$eventId")
 
 private fun aReader() = UserId("@bob:domain")

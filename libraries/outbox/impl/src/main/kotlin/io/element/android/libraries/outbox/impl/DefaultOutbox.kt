@@ -128,10 +128,10 @@ class DefaultOutbox(
             store.getAll(sessionId, roomId).forEach { record ->
                 val echo = record.matrixTransactionId?.let { byTransaction[it.value] }
                 val knownEventId = record.state.eventIdOrNull
-                val remote = knownEventId?.let { byEvent[it.value] }
+                val remoteReaders = knownEventId?.let { byEvent[it.value] }?.readBy
                 val signals = when {
                     echo != null -> echo.toSignals()
-                    remote != null && knownEventId != null -> remote.readBy.map { OutboxSignal.ReadReceipt(knownEventId, it) }
+                    knownEventId != null && remoteReaders != null -> remoteReaders.map { OutboxSignal.ReadReceipt(knownEventId, it) }
                     record.state.isPending && record.createdAtMillis + OUTBOX_RECONCILE_GRACE_MILLIS <= nowMillis -> listOf(OutboxSignal.AckLost)
                     else -> emptyList()
                 }

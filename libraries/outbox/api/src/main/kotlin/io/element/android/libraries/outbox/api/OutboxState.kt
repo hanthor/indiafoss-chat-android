@@ -50,7 +50,7 @@ sealed interface OutboxState {
 
     /** True when a user-triggered retry on the same route is meaningful. */
     val isRetryable: Boolean
-        get() = this is Uncertain || (this is Failed && retryable)
+        get() = this is Uncertain || this is Failed && retryable
 
     val eventIdOrNull: EventId?
         get() = when (this) {

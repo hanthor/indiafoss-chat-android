@@ -482,6 +482,18 @@ class TimelinePresenter(
         }
         return null
     }
+
+    private suspend fun retryUncertainSend(event: TimelineItem.Event) {
+        val summary = event.outbox ?: return
+        when (outbox.retry(summary.id, event.sendHandleProvider())) {
+            OutboxRetryResult.Retried -> Unit
+            // The route forgot the send: only an explicit continuation (step 2 of #48) may send again.
+            OutboxRetryResult.NoRouteHandle -> snackbarDispatcher.post(SnackbarMessage(R.string.screen_room_outbox_retry_not_possible))
+            is OutboxRetryResult.RouteRefused,
+            OutboxRetryResult.NotRetryable,
+            OutboxRetryResult.NotFound -> snackbarDispatcher.post(SnackbarMessage(CommonStrings.error_unknown))
+        }
+    }
 }
 
 private fun FocusRequestState.onFocusEventRender(): FocusRequestState {
@@ -506,15 +518,4 @@ private fun calculateServerNamesForRoom(room: JoinedRoom): List<String> {
         }
         .take(3)
 
-    private suspend fun retryUncertainSend(event: TimelineItem.Event) {
-        val summary = event.outbox ?: return
-        when (outbox.retry(summary.id, event.sendHandleProvider())) {
-            OutboxRetryResult.Retried -> Unit
-            // The route forgot the send: only an explicit continuation (step 2 of #48) may send again.
-            OutboxRetryResult.NoRouteHandle -> snackbarDispatcher.post(SnackbarMessage(R.string.screen_room_outbox_retry_not_possible))
-            is OutboxRetryResult.RouteRefused,
-            OutboxRetryResult.NotRetryable,
-            OutboxRetryResult.NotFound -> snackbarDispatcher.post(SnackbarMessage(CommonStrings.error_unknown))
-        }
-    }
 }
