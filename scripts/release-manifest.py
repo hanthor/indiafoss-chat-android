@@ -251,7 +251,9 @@ def apksigner_certificate(apksigner, apk_path):
     report = result.stdout
     digests = {match.lower() for match in CERT_LINE_RE.findall(report)}
     if re.search(r"^Number of signers: 1$", report, re.MULTILINE) is None or len(digests) != 1:
-        raise ManifestError("apksigner did not report exactly one signing certificate")
+        # The verification summary describes public certificate material only, so it is safe to show.
+        summary = [line for line in report.splitlines() if re.match(r"^(Verified|Number of signers|Signer\b|V[234]\.)", line)]
+        raise ManifestError("apksigner did not report exactly one signing certificate:\n" + "\n".join(summary))
     return next(iter(digests))
 
 
