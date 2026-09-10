@@ -174,7 +174,12 @@ class DefaultNeutrinoServiceTest {
         val binding = ReflectiveDiscoverableBinding(className = ThrowingSetDiscoverableFixture::class.java.name)
         assertThat(binding.isAvailable).isTrue()
 
-        val thrown = runCatching { binding.setDiscoverable(true) }.exceptionOrNull()
+        val thrown = try {
+            binding.setDiscoverable(true)
+            null
+        } catch (e: IllegalStateException) {
+            e
+        }
 
         assertThat(thrown).isInstanceOf(IllegalStateException::class.java)
         assertThat(thrown).hasMessageThat().isEqualTo("ffi boom")

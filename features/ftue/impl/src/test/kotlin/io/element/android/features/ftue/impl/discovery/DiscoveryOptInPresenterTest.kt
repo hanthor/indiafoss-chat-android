@@ -9,6 +9,7 @@ package io.element.android.features.ftue.impl.discovery
 
 import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
+import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.architecture.AsyncAction
@@ -59,8 +60,7 @@ class DiscoveryOptInPresenterTest {
             presenter.present()
         }.test {
             awaitItem().eventSink(DiscoveryOptInEvents.Choose(discoverable = false))
-            assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Loading)
-            assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Success(Unit))
+            assertThat(awaitSettled().submitAction).isEqualTo(AsyncAction.Success(Unit))
             assertThat(neutrinoService.setDiscoverableCalls).containsExactly(false)
             assertThat(preferences.isDiscoverable().first()).isFalse()
             assertThat(preferences.isDiscoveryPromptCompleted().first()).isTrue()
@@ -78,8 +78,7 @@ class DiscoveryOptInPresenterTest {
             presenter.present()
         }.test {
             awaitItem().eventSink(DiscoveryOptInEvents.Choose(discoverable = true))
-            assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Loading)
-            assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Success(Unit))
+            assertThat(awaitSettled().submitAction).isEqualTo(AsyncAction.Success(Unit))
             assertThat(preferences.isDiscoverable().first()).isTrue()
             assertThat(preferences.isDiscoveryPromptCompleted().first()).isTrue()
             assertThat(callback.choiceMadeCount).isEqualTo(1)
@@ -96,8 +95,7 @@ class DiscoveryOptInPresenterTest {
             presenter.present()
         }.test {
             awaitItem().eventSink(DiscoveryOptInEvents.Choose(discoverable = false))
-            assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Loading)
-            val failure = awaitItem().submitAction
+            val failure = awaitSettled().submitAction
             assertThat(failure).isInstanceOf(AsyncAction.Failure::class.java)
             val error = (failure as AsyncAction.Failure).error
             assertThat(error).isInstanceOf(DiscoverabilityNotAppliedException::class.java)
@@ -121,8 +119,7 @@ class DiscoveryOptInPresenterTest {
             presenter.present()
         }.test {
             awaitItem().eventSink(DiscoveryOptInEvents.Choose(discoverable = false))
-            assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Loading)
-            val state = awaitItem()
+            val state = awaitSettled()
             val error = (state.submitAction as AsyncAction.Failure).error
             assertThat(error).hasMessageThat().isEqualTo("Neutrino is not running")
             assertThat(preferences.isDiscoverable().first()).isTrue()
@@ -131,6 +128,16 @@ class DiscoveryOptInPresenterTest {
             state.eventSink(DiscoveryOptInEvents.ClearError)
             assertThat(awaitItem().submitAction).isEqualTo(AsyncAction.Uninitialized)
         }
+    }
+
+    // The fake service and in-memory store complete without suspending, so the
+    // Loading emission may be collapsed into the terminal state.
+    private suspend fun ReceiveTurbine<DiscoveryOptInState>.awaitSettled(): DiscoveryOptInState {
+        var state = awaitItem()
+        while (state.submitAction is AsyncAction.Loading) {
+            state = awaitItem()
+        }
+        return state
     }
 
     private fun createPresenter(

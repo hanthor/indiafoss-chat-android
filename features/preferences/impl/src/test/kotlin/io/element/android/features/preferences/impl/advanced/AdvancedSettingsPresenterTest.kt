@@ -13,7 +13,6 @@ import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.compound.theme.Theme
-import io.element.android.services.neutrino.test.FakeNeutrinoService
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
@@ -25,6 +24,7 @@ import io.element.android.libraries.preferences.test.InMemorySessionPreferencesS
 import io.element.android.services.neutrino.api.DiscoverabilityNotAppliedException
 import io.element.android.services.neutrino.api.DiscoverableResult
 import io.element.android.services.neutrino.api.NeutrinoService
+import io.element.android.services.neutrino.test.FakeNeutrinoService
 import io.element.android.tests.testutils.WarmUpRule
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
