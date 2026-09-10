@@ -32,6 +32,11 @@ upstream commit `94cd8274`, aligned with the
   (a `matrix:` URI resolves locally, so it works offline), pages outside the
   companion origin open in the browser, and a missing handler is explained
   with a toast instead of a crash.
+- **Event identity.** The launcher, splash, notification and first-run
+  artwork and the conference entry carry the IndiaFOSS 2026 palette as a
+  sibling of the Companion; conversations keep Compound's neutral or
+  Material You accent. Asset provenance, licence and affected screenshot
+  goldens: [docs/indiafoss/branding-2026.md](docs/indiafoss/branding-2026.md).
 - **E2EE.** Public homeservers use Element X's Matrix encryption. The pinned
   Neutrino bindings implement mesh E2EE; installed-device interoperability,
   media and recovery still require the acceptance evidence in #45 and #49.

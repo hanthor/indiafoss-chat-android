@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="screen_conference_header_title">IndiaFOSS 2026</string>
+    <string name="screen_conference_header_subtitle">Companion: schedule, plan, map and contacts</string>
+    <string name="action_open_companion">Open Companion</string>
+    <string name="action_open_in_browser">Open in browser</string>
+</resources>

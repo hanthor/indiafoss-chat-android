@@ -8,10 +8,14 @@
 
 package io.element.android.features.preferences.impl.about
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.unit.dp
+import io.element.android.compound.theme.ElementTheme
+import io.element.android.features.preferences.impl.R
 import io.element.android.libraries.designsystem.components.preferences.PreferencePage
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
@@ -45,6 +49,13 @@ fun AboutView(
                 Text(stringResource(id = CommonStrings.common_open_source_licenses))
             },
             onClick = onOpenSourceLicensesClick,
+        )
+        // Unofficial community project: kept until an explicit endorsement decision changes it.
+        Text(
+            text = stringResource(id = R.string.screen_about_unofficial_disclosure),
+            style = ElementTheme.typography.fontBodySmRegular,
+            color = ElementTheme.colors.textSecondary,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
         )
     }
 }

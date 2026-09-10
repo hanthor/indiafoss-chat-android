@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<!-- Themed-icon layer: the same bubble as a single-colour silhouette, lines cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M32,30H76V34H80V66H76V70H48V74H44V78H40V70H32V66H28V34H32ZM36,39H72V43H36ZM36,48H64V52H36ZM36,57H56V61H36Z" />
+</vector>
