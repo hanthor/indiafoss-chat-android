@@ -15,6 +15,7 @@ import io.element.android.libraries.designsystem.components.avatar.AvatarSize
 import io.element.android.libraries.designsystem.components.avatar.anAvatarData
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
+import io.element.android.libraries.outbox.api.OutboxState
 import kotlinx.collections.immutable.toImmutableList
 
 class ReadReceiptViewStateProvider : PreviewParameterProvider<ReadReceiptViewState> {
@@ -48,10 +49,12 @@ class ReadReceiptViewStateProvider : PreviewParameterProvider<ReadReceiptViewSta
 
 internal fun aReadReceiptViewState(
     sendState: LocalEventSendState? = null,
+    outboxState: OutboxState? = null,
     isLastOutgoingMessage: Boolean = true,
     receipts: List<ReadReceiptData> = emptyList(),
 ) = ReadReceiptViewState(
     sendState = sendState,
+    outboxState = outboxState,
     isLastOutgoingMessage = isLastOutgoingMessage,
     receipts = receipts.toImmutableList(),
 )

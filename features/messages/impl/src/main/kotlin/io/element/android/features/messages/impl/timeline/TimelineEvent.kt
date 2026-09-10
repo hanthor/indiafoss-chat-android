@@ -31,6 +31,9 @@ sealed interface TimelineEvent {
     sealed interface TimelineItemEvent : TimelineEvent
 
     data class ComputeVerifiedUserSendFailure(val event: TimelineItem.Event) : TimelineItemEvent
+
+    /** Retry a send whose outcome is unknown, on the same route and with the same transaction id. */
+    data class RetryUncertainSend(val event: TimelineItem.Event) : TimelineItemEvent
     data class ShowShieldDialog(val messageShieldData: MessageShieldData) : TimelineItemEvent
     data class LoadMore(val direction: Timeline.PaginationDirection) : TimelineItemEvent
     data class OpenThread(val threadRootEventId: ThreadId, val focusedEvent: EventId?) : TimelineItemEvent

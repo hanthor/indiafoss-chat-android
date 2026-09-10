@@ -26,6 +26,7 @@ import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
+import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.timeline.TimelineEvent
 import io.element.android.features.messages.impl.timeline.model.TimelineItem
 import io.element.android.features.messages.impl.timeline.model.event.isEdited
@@ -36,6 +37,7 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
+import io.element.android.libraries.outbox.api.OutboxState
 import io.element.android.libraries.ui.strings.CommonStrings
 
 @Composable
@@ -53,12 +55,14 @@ fun TimelineEventTimestampView(
 
     val shield = event.messageShield
     val isVerifiedUserSendFailure = event.localSendState is LocalEventSendState.Failed.VerifiedUser
+    val isDeliveryUncertain = event.outbox?.state is OutboxState.Uncertain
     val onClickLabel = when {
         shield != null -> stringResource(CommonStrings.a11y_view_details)
         hasError && isVerifiedUserSendFailure -> stringResource(CommonStrings.action_open_context_menu)
+        isDeliveryUncertain -> stringResource(R.string.a11y_outbox_retry)
         else -> null
     }
-    val clickableModifier = remember(shield, hasError) {
+    val clickableModifier = remember(shield, hasError, isDeliveryUncertain) {
         when {
             shield != null -> {
                 Modifier.clickable(
@@ -74,6 +78,11 @@ fun TimelineEventTimestampView(
                 ) {
                     eventSink(TimelineEvent.ComputeVerifiedUserSendFailure(event))
                 }
+            isDeliveryUncertain -> Modifier.clickable(
+                onClickLabel = onClickLabel,
+            ) {
+                eventSink(TimelineEvent.RetryUncertainSend(event))
+            }
             else -> Modifier
         }
     }
@@ -108,6 +117,15 @@ fun TimelineEventTimestampView(
                 modifier = Modifier.size(15.dp, 18.dp),
             )
         }
+        if (isDeliveryUncertain) {
+            Spacer(modifier = Modifier.width(2.dp))
+            Icon(
+                imageVector = CompoundIcons.Help(),
+                contentDescription = stringResource(id = R.string.common_delivery_unknown),
+                tint = tint,
+                modifier = Modifier.size(15.dp, 18.dp),
+            )
+        }
 
         if (!isMessageRedacted) {
             shield?.let { shield ->
@@ -127,6 +145,17 @@ fun TimelineEventTimestampView(
 @PreviewsDayNight
 @Composable
 internal fun TimelineEventTimestampViewPreview(@PreviewParameter(TimelineItemEventForTimestampViewProvider::class) event: TimelineItem.Event) = ElementPreview {
+    TimelineEventTimestampView(
+        event = event,
+        eventSink = {},
+    )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun TimelineEventTimestampViewOutboxPreview(
+    @PreviewParameter(TimelineItemEventForOutboxTimestampViewProvider::class) event: TimelineItem.Event,
+) = ElementPreview {
     TimelineEventTimestampView(
         event = event,
         eventSink = {},

@@ -106,6 +106,7 @@ fun DependencyHandlerScope.allLibrariesImpl() {
     implementation(project(":libraries:di"))
     implementation(project(":libraries:cachestore:impl"))
     implementation(project(":libraries:session-storage:impl"))
+    implementation(project(":libraries:outbox:impl"))
     implementation(project(":libraries:mediapickers:impl"))
     implementation(project(":libraries:mediaupload:impl"))
     implementation(project(":libraries:slashcommands:impl"))

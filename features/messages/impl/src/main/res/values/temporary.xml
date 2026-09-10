@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="common_delivery_accepted_by_server">"Accepted by the server"</string>
+    <string name="common_delivery_delivered">"Delivered"</string>
+    <string name="common_delivery_read">"Read"</string>
+    <string name="common_delivery_unknown">"Delivery unknown"</string>
+    <string name="a11y_outbox_retry">"Retry sending, without a duplicate"</string>
+    <string name="screen_room_outbox_retry_not_possible">"Can’t retry safely: the earlier attempt may already have been delivered, and sending again could deliver it twice."</string>
+</resources>

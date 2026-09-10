@@ -293,6 +293,7 @@ fun TimelineItemEventRow(
         TimelineItemReadReceiptView(
             state = ReadReceiptViewState(
                 sendState = event.localSendState,
+                outboxState = event.outbox?.state,
                 isLastOutgoingMessage = isLastOutgoingMessage,
                 receipts = event.readReceiptState.receipts,
             ),

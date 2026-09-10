@@ -197,6 +197,7 @@ private fun TimelineItemGroupedEventsRowContent(
             TimelineItemReadReceiptView(
                 state = ReadReceiptViewState(
                     sendState = null,
+                    outboxState = null,
                     isLastOutgoingMessage = false,
                     receipts = timelineItem.aggregatedReadReceipts,
                 ),

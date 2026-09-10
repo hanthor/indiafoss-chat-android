@@ -12,6 +12,7 @@ import app.cash.turbine.ReceiveTurbine
 import com.google.common.truth.Truth.assertThat
 import io.element.android.features.location.test.FakeActiveLiveLocationShareManager
 import io.element.android.features.messages.impl.FakeMessagesNavigator
+import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.crypto.sendfailure.resolve.aResolveVerifiedUserSendFailureState
 import io.element.android.features.messages.impl.fixtures.aMessageEvent
 import io.element.android.features.messages.impl.fixtures.aTimelineItemsFactoryCreator
@@ -28,9 +29,11 @@ import io.element.android.features.poll.api.actions.SendPollResponseAction
 import io.element.android.features.poll.test.actions.FakeEndPollAction
 import io.element.android.features.poll.test.actions.FakeSendPollResponseAction
 import io.element.android.features.roomcall.api.aStandByCallState
+import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
 import io.element.android.libraries.matrix.api.core.EventId
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.SendHandle
 import io.element.android.libraries.matrix.api.core.ThreadId
 import io.element.android.libraries.matrix.api.core.UniqueId
 import io.element.android.libraries.matrix.api.core.asEventId
@@ -49,9 +52,11 @@ import io.element.android.libraries.matrix.test.AN_EVENT_ID_2
 import io.element.android.libraries.matrix.test.A_ROOM_ID
 import io.element.android.libraries.matrix.test.A_THREAD_ID
 import io.element.android.libraries.matrix.test.A_THREAD_ID_2
+import io.element.android.libraries.matrix.test.A_TRANSACTION_ID
 import io.element.android.libraries.matrix.test.A_UNIQUE_ID
 import io.element.android.libraries.matrix.test.A_UNIQUE_ID_2
 import io.element.android.libraries.matrix.test.A_USER_ID
+import io.element.android.libraries.matrix.test.core.FakeSendHandle
 import io.element.android.libraries.matrix.test.room.FakeBaseRoom
 import io.element.android.libraries.matrix.test.room.FakeJoinedRoom
 import io.element.android.libraries.matrix.test.room.aRoomMember
@@ -60,8 +65,16 @@ import io.element.android.libraries.matrix.test.timeline.FakeTimeline
 import io.element.android.libraries.matrix.test.timeline.aMessageContent
 import io.element.android.libraries.matrix.test.timeline.anEventTimelineItem
 import io.element.android.libraries.matrix.ui.components.aMatrixUserList
+import io.element.android.libraries.outbox.api.OutboxId
+import io.element.android.libraries.outbox.api.OutboxRetryResult
+import io.element.android.libraries.outbox.api.OutboxState
+import io.element.android.libraries.outbox.api.OutboxSummary
+import io.element.android.libraries.outbox.test.FakeOutbox
+import io.element.android.libraries.outbox.test.FakeOutboxRoomTracker
+import io.element.android.libraries.outbox.test.anOutboxRecord
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.services.analytics.test.FakeAnalyticsService
+import io.element.android.services.toolbox.test.systemclock.FakeSystemClock
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.awaitLastSequentialItem
 import io.element.android.tests.testutils.consumeItemsUntilPredicate
@@ -77,6 +90,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -998,6 +1012,84 @@ class TimelinePresenterTest {
         canPinUnpin = canPinUnpin,
     )
 
+    @Test
+    fun `present - own events carry their durable outbox state and the room is reconciled`() = runTest {
+        val uncertain = anOutboxRecord(id = OutboxId("uncertain"), transactionId = A_TRANSACTION_ID, state = OutboxState.Uncertain)
+        val accepted = anOutboxRecord(id = OutboxId("accepted"), state = OutboxState.ServerAccepted(AN_EVENT_ID_2), createdAtMillis = 1L)
+        val outbox = FakeOutbox(recordsFlow = MutableStateFlow(listOf(uncertain, accepted)))
+        val outboxRoomTracker = FakeOutboxRoomTracker()
+        val timelineItems = MutableStateFlow(
+            listOf(
+                MatrixTimelineItem.Event(
+                    uniqueId = UniqueId("0"),
+                    event = anEventTimelineItem(content = aMessageContent(), isOwn = true, transactionId = A_TRANSACTION_ID),
+                ),
+                MatrixTimelineItem.Event(
+                    uniqueId = UniqueId("1"),
+                    event = anEventTimelineItem(eventId = AN_EVENT_ID_2, content = aMessageContent(), isOwn = true),
+                ),
+                MatrixTimelineItem.Event(
+                    uniqueId = UniqueId("2"),
+                    event = anEventTimelineItem(eventId = AN_EVENT_ID, content = aMessageContent(), isOwn = false),
+                ),
+            )
+        )
+        val timeline = FakeTimeline(timelineItems = timelineItems)
+        val presenter = createTimelinePresenter(timeline = timeline, outbox = outbox, outboxRoomTracker = outboxRoomTracker)
+        presenter.test {
+            val state = consumeItemsUntilPredicate { it.timelineItems.size == 3 }.last()
+            val events = state.timelineItems.filterIsInstance<TimelineItem.Event>()
+            // The list is rendered most recent first.
+            assertThat(events[2].outbox).isEqualTo(OutboxSummary(OutboxId("uncertain"), OutboxState.Uncertain))
+            assertThat(events[1].outbox).isEqualTo(OutboxSummary(OutboxId("accepted"), OutboxState.ServerAccepted(AN_EVENT_ID_2)))
+            assertThat(events[0].outbox).isNull()
+            assertThat(outboxRoomTracker.trackedRooms).containsExactly(A_ROOM_ID)
+            // Only our own events are reconciled, and nothing is resent.
+            val observations = outbox.reconciled.last()
+            assertThat(observations.map { it.transactionId }).containsExactly(A_TRANSACTION_ID, null)
+            assertThat(outbox.sent).isEmpty()
+        }
+    }
+
+    @Test
+    fun `present - retry of an uncertain send goes through the outbox with the route handle`() = runTest {
+        val retryLambda = lambdaRecorder { _: OutboxId, _: SendHandle? -> OutboxRetryResult.Retried }
+        val outbox = FakeOutbox(retryLambda = retryLambda)
+        val presenter = createTimelinePresenter(outbox = outbox)
+        presenter.test {
+            val initialState = awaitFirstItem()
+            val sendHandle = FakeSendHandle()
+            val event = aTimelineItemEvent(
+                isMine = true,
+                outbox = OutboxSummary(OutboxId("uncertain"), OutboxState.Uncertain),
+            ).copy(sendHandleProvider = { sendHandle })
+            initialState.eventSink(TimelineEvent.RetryUncertainSend(event))
+            // An event without a record is ignored.
+            initialState.eventSink(TimelineEvent.RetryUncertainSend(aTimelineItemEvent(isMine = true)))
+            runCurrent()
+            assert(retryLambda)
+                .isCalledOnce()
+                .with(value(OutboxId("uncertain")), value(sendHandle))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - a retry the route cannot do safely is explained instead of sending a duplicate`() = runTest {
+        val outbox = FakeOutbox(retryLambda = { _, _ -> OutboxRetryResult.NoRouteHandle })
+        val snackbarDispatcher = SnackbarDispatcher()
+        val presenter = createTimelinePresenter(outbox = outbox, snackbarDispatcher = snackbarDispatcher)
+        presenter.test {
+            val initialState = awaitFirstItem()
+            val event = aTimelineItemEvent(isMine = true, outbox = OutboxSummary(OutboxId("uncertain"), OutboxState.Uncertain))
+            initialState.eventSink(TimelineEvent.RetryUncertainSend(event))
+            val message = snackbarDispatcher.snackbarMessage.first { it != null }
+            assertThat(message?.messageResId).isEqualTo(R.string.screen_room_outbox_retry_not_possible)
+            assertThat(outbox.sent).isEmpty()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     private fun TestScope.createTimelinePresenter(
         timeline: Timeline = FakeTimeline(),
         room: FakeJoinedRoom = FakeJoinedRoom(
@@ -1014,6 +1106,9 @@ class TimelinePresenterTest {
         timelineItemIndexer: TimelineItemIndexer = TimelineItemIndexer(),
         featureFlagService: FakeFeatureFlagService = FakeFeatureFlagService(),
         liveLocationShareManager: FakeActiveLiveLocationShareManager = FakeActiveLiveLocationShareManager(),
+        outbox: FakeOutbox = FakeOutbox(),
+        outboxRoomTracker: FakeOutboxRoomTracker = FakeOutboxRoomTracker(),
+        snackbarDispatcher: SnackbarDispatcher = SnackbarDispatcher(),
     ): TimelinePresenter {
         return TimelinePresenter(
             timelineItemsFactoryCreator = aTimelineItemsFactoryCreator(),
@@ -1033,6 +1128,10 @@ class TimelinePresenterTest {
             featureFlagService = featureFlagService,
             analyticsService = FakeAnalyticsService(),
             liveLocationShareManager = liveLocationShareManager,
+            outbox = outbox,
+            outboxRoomTracker = outboxRoomTracker,
+            systemClock = FakeSystemClock(),
+            snackbarDispatcher = snackbarDispatcher,
         )
     }
 }

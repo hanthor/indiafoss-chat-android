@@ -90,6 +90,7 @@ import io.element.android.libraries.matrix.api.room.JoinedRoom
 import io.element.android.libraries.matrix.api.sync.SyncService
 import io.element.android.libraries.matrix.api.verification.SessionVerificationServiceListener
 import io.element.android.libraries.matrix.api.verification.VerificationRequest
+import io.element.android.libraries.outbox.api.OutboxRoomTracker
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.push.api.notifications.conversations.NotificationConversationService
 import io.element.android.libraries.ui.common.nodes.emptyNode
@@ -138,6 +139,7 @@ class LoggedInFlowNode(
     private val shareEntryPoint: ShareEntryPoint,
     private val matrixClient: MatrixClient,
     private val sendingQueue: SendQueues,
+    private val outboxRoomTracker: OutboxRoomTracker,
     private val incomingVerificationEntryPoint: IncomingVerificationEntryPoint,
     private val mediaPreviewConfigMigration: MediaPreviewConfigMigration,
     private val sessionEnterpriseService: SessionEnterpriseService,
@@ -258,6 +260,7 @@ class LoggedInFlowNode(
 
     private fun setupSendingQueue() {
         sendingQueue.launchIn(lifecycleScope)
+        outboxRoomTracker.launchIn(lifecycleScope)
     }
 
     sealed interface NavTarget : Parcelable {
