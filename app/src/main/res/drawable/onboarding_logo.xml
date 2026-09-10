@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~ Wordmark paths: FOSS United Foundation, https://github.com/fossunited/Branding
+  ~ (asset/indiaFOSS/IndiaFOSS-2026-Black.svg at d55f3581), CC BY-SA 4.0;
+  ~ this file keeps those paths under CC BY-SA 4.0 with no path changes.
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<!--
+  First-run lockup picked up by name by OnBoardingLogoResIdProvider: the IndiaFOSS
+  Chat glyph above the official IndiaFOSS 2026 wordmark. Only the launch screen
+  uses it; conversations keep Compound. See docs/indiafoss/branding-2026.md.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="280dp"
+    android:height="210dp"
+    android:viewportWidth="935"
+    android:viewportHeight="701">
+    <path
+        android:fillColor="#114B29"
+        android:pathData="M389.5,8H545.5A52,52 0 0 1 597.5,60V216A52,52 0 0 1 545.5,268H389.5A52,52 0 0 1 337.5,216V60A52,52 0 0 1 389.5,8Z" />
+    <group
+        android:scaleX="2.4074"
+        android:scaleY="2.4074"
+        android:translateX="337.5"
+        android:translateY="8">
+        <path
+            android:fillColor="#0FB556"
+            android:pathData="M32,30H76V34H80V66H76V70H48V74H44V78H40V70H32V66H28V34H32Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M36,39H72V43H36ZM36,48H64V52H36ZM36,57H56V61H36Z" />
+    </group>
+    <group android:translateY="400">
+        <path
+            android:fillColor="#141414"
+            android:pathData="M244.761 168.932H271.512V89.6007H244.761V168.932ZM216.47 196.493V62.1512H286.1V75.4849H299.88V183.011H286.1V196.456H216.47V196.493Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M96.9931 62.1511H66.9316V195.935H96.9931V62.1511Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M347.914 62.1512H317.853V195.935H347.914V62.1512Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M143.336 196.456H115.007V62.1512H198.378V196.456H170.049V89.6007H143.298V196.456H143.336Z" />
+        <path
+            android:fillColor="#141414"
+            android:fillType="evenOdd"
+            android:pathData="M394.22 196.456V143.047H420.971V196.456H449.262V62.1512H365.891V196.456H394.22ZM421.01 113.959V89.6007H394.258V113.959H421.01Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M531.364 196.456H502.996V62.1512H572.742V89.6007H531.364V115.56H572.742V143.01H531.364V196.493V196.456Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M587.6 62.1512V196.456H671.125V62.1512H587.6ZM642.757 168.932H615.929V89.6007H642.757V168.932Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M767.864 89.6006V62.1512L687.938 62.1512V142.972H740.735V168.932H686.738V196.456H769.064V115.523H716.305V89.6006H767.864Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M865.846 89.6006V62.1512L785.919 62.1512V142.972H838.678V168.932H784.719V196.456H867.045V115.523H814.287V89.6006H865.846Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M934.637 0V258.168H868.904V229.482H905.951V28.6856H28.6856V229.482H607.172V258.168H0V0H934.637Z" />
+        <path
+            android:fillColor="#141414"
+            android:fillType="evenOdd"
+            android:pathData="M848.135 240.017H819.851V251.898H851.199V300.117H800.138V222.018H848.135V240.017ZM819.851 282.119H831.486V267.897H819.851V282.119Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M675.7 272.666H646.13V282.119H676.557V300.117H626.417V254.667H655.987V240.017H627.703V222.018H675.7V272.666Z" />
+        <path
+            android:fillColor="#141414"
+            android:pathData="M791.228 272.666H761.659V282.119H792.085V300.117H741.945V254.667H771.515V240.017H743.231V222.018H791.228V272.666Z" />
+        <path
+            android:fillColor="#141414"
+            android:fillType="evenOdd"
+            android:pathData="M733.893 300.117H684.61V222.018H733.893V300.117ZM704.323 282.119H714.18V240.017H704.323V282.119Z" />
+    </group>
+</vector>

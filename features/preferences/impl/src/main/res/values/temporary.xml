@@ -13,4 +13,6 @@
     <string name="screen_advanced_settings_discoverable_error">"Nearby discovery could not be changed, so your previous setting still applies. %1$s"</string>
     <string name="screen_advanced_settings_dynamic_colors_title">Use wallpaper colours</string>
     <string name="screen_advanced_settings_dynamic_colors_description">Match the app to your device\'s Material You palette (Android 12+).</string>
+    <string name="screen_about_artwork_attribution">IndiaFOSS artwork attribution</string>
+    <string name="screen_about_unofficial_disclosure">IndiaFOSS Chat is an unofficial community project. It is not produced or endorsed by Element or FOSS United. IndiaFOSS and FOSS United artwork is used under CC BY-SA 4.0 and remains the property of the FOSS United Foundation.</string>
 </resources>
