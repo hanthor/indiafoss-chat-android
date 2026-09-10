@@ -65,6 +65,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ELEMENT_BOT_TOKEN_NEUTRINO }}
         run: ./gradlew :app:assembleFdroidRelease -PindiafossNightlyCode="$NIGHTLY_CODE" -PindiafossNightlyVersion="$NIGHTLY_VERSION" -PallWarningsAsErrors=true --stacktrace --no-configuration-cache
+      - name: Verify the Neutrino bindings provenance against the downloaded .aar
+        # Fail closed: the provenance record, version catalog, build-script checksum and the
+        # file Gradle actually consumed must all agree before anything is signed.
+        run: |
+          set -euo pipefail
+          mapfile -t aars < <(find services/neutrino/impl/libs -maxdepth 1 -name 'neutrino-bindings-*.aar')
+          test "${#aars[@]}" -eq 1
+          python3 scripts/release-manifest.py check-provenance --aar "${aars[0]}"
       - name: Sign and verify the universal APK
         env:
           NIGHTLY_KEYSTORE_BASE64: ${{ secrets.NIGHTLY_KEYSTORE_BASE64 }}
@@ -89,6 +97,32 @@ jobs:
           if not match or match.groups() != expected:
               raise SystemExit('APK package/version does not match the preview identity')
           PY
+      - name: Build and verify the release manifest
+        # Maps neutrino rev -> neutrino-iroh rev -> .aar SHA-256 -> Chat commit -> APK identity,
+        # checksum, signer and CI evidence. Re-verifies the .aar hash and the APK signature
+        # (apksigner) and refuses to continue if anything disagrees; nothing is uploaded yet.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NIGHTLY_CERT_SHA256: ${{ vars.NIGHTLY_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          mapfile -t aars < <(find services/neutrino/impl/libs -maxdepth 1 -name 'neutrino-bindings-*.aar')
+          test "${#aars[@]}" -eq 1
+          export NIGHTLY_CODE=$((NIGHTLY_CODE * 10))
+          python3 scripts/release-manifest.py build \
+            --apk dist/indiafoss-chat-android.apk --output dist/release-manifest.json \
+            --aar "${aars[0]}" --apksigner "$tools/apksigner" --runs "$RUNNER_TEMP/source-runs.json" \
+            --flavour fdroid --build-type release --abi universal
+          previous=()
+          if gh release download nightly --pattern release-manifest.json --output "$RUNNER_TEMP/previous-manifest.json" 2>/dev/null; then
+            previous=(--previous "$RUNNER_TEMP/previous-manifest.json")
+          else
+            echo "No previous release-manifest.json on the nightly release; skipping the monotonic versionCode check"
+          fi
+          python3 scripts/release-manifest.py verify \
+            --apk dist/indiafoss-chat-android.apk --manifest dist/release-manifest.json \
+            --apksigner "$tools/apksigner" --expect-signer "$NIGHTLY_CERT_SHA256" "${previous[@]}"
       - name: Publish verified download
         env:
           GH_TOKEN: ${{ github.token }}
@@ -107,15 +141,15 @@ jobs:
 
           Package: `org.indiafoss.chat`. Persistent preview signing certificate SHA-256: `{os.environ['NIGHTLY_CERT_SHA256']}`. Keep the same signing identity for future updates. Old debug-package builds are separate installs; their account data does not migrate automatically.
 
-          The SHA-256 checksum and signing metadata are attached. Open the Companion: https://hanthor.github.io/indiafoss-companion/
+          The SHA-256 checksum, signing metadata and `release-manifest.json` (Neutrino rev, neutrino-iroh rev, bindings .aar SHA-256, Chat commit, APK identity, signer and CI evidence; schema in docs/preview-release.md) are attached. Verify a download offline with `scripts/release-manifest.py verify`. Open the Companion: https://hanthor.github.io/indiafoss-companion/
           ''')
           PY
           tag="preview-${NIGHTLY_VERSION}"
-          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json
           if gh release view nightly >/dev/null 2>&1; then
             gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/nightly" -f sha="$GITHUB_SHA" -F force=true
-            gh release upload nightly dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json --clobber
+            gh release upload nightly dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json --clobber
             gh release edit nightly --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md --prerelease
           else
-            gh release create nightly --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json
+            gh release create nightly --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json
           fi
