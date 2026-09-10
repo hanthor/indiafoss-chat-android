@@ -24,8 +24,14 @@ upstream commit `94cd8274`, aligned with the
 - **Conference inside the app.** `ConferenceActivity` hosts the offline-first
   companion PWA (schedule, ranking, itinerary, venue map, contact cards) and
   is reachable from the launcher shortcut "Conference" or
-  `indiafoss://conference/<route>`; chat links inside it hand back to the
-  messenger.
+  `indiafoss://conference/<route>`. When the native Companion
+  (`org.indiafoss.companion.nativeapp`) is installed, routes it understands
+  (`activity`, `location`, `speaker`, home) open there instead. Links met in
+  the WebView are classified by `ConferenceLinks`: `matrix:` and `matrix.to`
+  links and `indiafoss://chat…`/`friend…` cards hand back to the messenger
+  (a `matrix:` URI resolves locally, so it works offline), pages outside the
+  companion origin open in the browser, and a missing handler is explained
+  with a toast instead of a crash.
 - **E2EE.** Public homeservers use Element X's Matrix encryption. The pinned
   Neutrino bindings implement mesh E2EE; installed-device interoperability,
   media and recovery still require the acceptance evidence in #45 and #49.

@@ -9,25 +9,29 @@ package io.element.android.x.conference
 
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
-import androidx.core.net.toUri
 
 /**
  * Hosts the IndiaFOSS Companion PWA (schedule, ranking, itinerary, venue map,
  * contact cards) inside the chat app. The companion is an offline-first web
  * app; once loaded it keeps working without connectivity through its service
- * worker. `indiafoss://chat…` and `indiafoss://friend…` links inside the
- * companion are handed back to the chat app's intent resolver, and other
- * `indiafoss://` links (location markers, activities) stay in the WebView.
+ * worker.
+ *
+ * When the native companion is installed, conference routes it understands are
+ * handed to it instead and this screen closes. Links met inside the WebView are
+ * classified by [ConferenceLinks] and acted on by [ConferenceLinkDispatcher]:
+ * `matrix:` and `matrix.to` links and `indiafoss://chat…` / `friend…` cards go to
+ * this app's messenger, anything outside the companion origin goes to the
+ * matching system app, and unsupported schemes are dropped.
  */
 class ConferenceActivity : ComponentActivity() {
     private lateinit var webView: WebView
+    private lateinit var dispatcher: ConferenceLinkDispatcher
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,35 +44,11 @@ class ConferenceActivity : ComponentActivity() {
             settings.mediaPlaybackRequiresUserGesture = false
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    val url = request.url
-                    return when {
-                        url.scheme == "indiafoss" && (url.host == "chat" || url.host == "friend") -> {
-                            startActivity(Intent(Intent.ACTION_VIEW, url).setPackage(packageName))
-                            true
-                        }
-                        url.scheme == "https" && url.host == "matrix.to" -> {
-                            startActivity(Intent(Intent.ACTION_VIEW, url).setPackage(packageName))
-                            true
-                        }
-                        url.scheme == "https" || url.scheme == "http" -> {
-                            // Stay inside the companion origin; everything else opens in the browser.
-                            val companion = COMPANION_URL.toUri()
-                            if (url.host == companion.host) {
-                                false
-                            } else {
-                                startActivity(Intent(Intent.ACTION_VIEW, url))
-                                true
-                            }
-                        }
-                        url.scheme == "mailto" || url.scheme == "tel" || url.scheme == "sms" -> {
-                            startActivity(Intent(Intent.ACTION_VIEW, url))
-                            true
-                        }
-                        else -> false
-                    }
+                    return dispatcher.dispatch(ConferenceLinks.classify(request.url))
                 }
             }
         }
+        dispatcher = ConferenceLinkDispatcher(this, loadInWebView = { webView.loadUrl(it) })
         setContentView(webView)
         onBackPressedDispatcher.addCallback(
             this,
@@ -79,7 +59,7 @@ class ConferenceActivity : ComponentActivity() {
             }
         )
         if (savedInstanceState == null) {
-            webView.loadUrl(targetUrl(intent))
+            open(intent)
         } else {
             webView.restoreState(savedInstanceState)
         }
@@ -87,7 +67,7 @@ class ConferenceActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        webView.loadUrl(targetUrl(intent))
+        open(intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -95,16 +75,13 @@ class ConferenceActivity : ComponentActivity() {
         webView.saveState(outState)
     }
 
-    /** `indiafoss://conference/<path>` opens that companion route; anything else opens the home. */
-    private fun targetUrl(intent: Intent?): String {
-        val data: Uri? = intent?.data
-        val path = data?.takeIf { it.scheme == "indiafoss" && it.host == "conference" }?.path.orEmpty()
-        val query = data?.encodedQuery?.let { "?$it" }.orEmpty()
-        return COMPANION_URL.trimEnd('/') + path + query
-    }
-
-    companion object {
-        /** Deployed companion PWA (GitHub Pages). Override for self-hosted deployments. */
-        const val COMPANION_URL = "https://hanthor.github.io/indiafoss-companion/"
+    /** `indiafoss://conference/<route>`: the native companion when it takes the route, else that route on the PWA. */
+    private fun open(intent: Intent?) {
+        val route = ConferenceLinks.entry(intent?.data)
+        if (dispatcher.openInCompanion(route)) {
+            finish()
+        } else {
+            webView.loadUrl(route.pwaUrl)
+        }
     }
 }
