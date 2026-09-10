@@ -1,0 +1,23 @@
+{
+  "_comment": "Provenance of the pinned Neutrino bindings. scripts/release-manifest.py check-provenance refuses a build where this file, gradle/libs.versions.toml (neutrino =) and the neutrinoSha256 in build.gradle.kts disagree, or where the downloaded .aar hashes differently. Bump all three together; the revs must be full 40-character commit SHAs whose 7-character prefixes appear in the version string.",
+  "bindings": {
+    "version": "0.8.2-e2ee.2d85348-ble.15117e9",
+    "artifact": "neutrino-bindings-0.8.2-e2ee.2d85348-ble.15117e9.aar",
+    "sha256": "26cf81315af5d9f06ee0c6a12d15578570f1a218e3191aa8406b9cd83d4fc3af",
+    "source": "https://github.com/hanthor/indiafoss-companion/releases/tag/neutrino-bindings-0.8.2-e2ee.2d85348-ble.15117e9",
+    "builtBy": "https://github.com/hanthor/indiafoss-companion/blob/main/.github/workflows/neutrino-bindings.yml",
+    "license": "AGPL-3.0-only"
+  },
+  "neutrino": {
+    "repository": "hanthor/neutrino",
+    "branch": "e2ee-key-transport",
+    "rev": "2d85348ee5a0086c3f30725a31b68439f4fe89b4",
+    "base": "element-hq/neutrino@v0.7.1 (90bc1b1)"
+  },
+  "neutrinoIroh": {
+    "repository": "hanthor/neutrino-iroh",
+    "ref": "neutrino-kit-15117e9",
+    "rev": "15117e9816b259ac156acfb1a45caebacafce530",
+    "base": "element-hq/neutrino-iroh@v0.8.2 (65e4985)"
+  }
+}
