@@ -177,6 +177,31 @@ class ParserTests(unittest.TestCase):
                 module.declared_certificate(make_apk(self.root / "b.apk", signers=signers))
 
 
+class ApksignerReportTests(unittest.TestCase):
+    """Certificate lines as printed by build-tools 35 (Signer #1), 36 (V3.0 Signer:) and 37 (V2 Signer:)."""
+
+    def run_with_report(self, report, returncode=0):
+        completed = mock.Mock(returncode=returncode, stdout=report, stderr="")
+        with mock.patch.object(module.subprocess, "run", return_value=completed):
+            return module.apksigner_certificate("/fake/apksigner", "x.apk")
+
+    def test_every_known_label_is_accepted(self):
+        for label in ("Signer #1", "Signer (minSdkVersion=28, maxSdkVersion=2147483647)", "V2 Signer:", "V3.0 Signer:", "V3.1 Signer:"):
+            with self.subTest(label=label):
+                report = f"Verifies\nNumber of signers: 1\n{label} certificate SHA-256 digest: {CERT_SHA}\n{label} public key SHA-256 digest: {'9' * 64}\n"
+                self.assertEqual(self.run_with_report(report), CERT_SHA)
+
+    def test_failure_multiple_or_missing_certificates_are_refused(self):
+        for label, report, returncode in (
+            ("verification failed", f"Number of signers: 1\nSigner #1 certificate SHA-256 digest: {CERT_SHA}\n", 1),
+            ("no certificate line", "Verifies\nNumber of signers: 1\n", 0),
+            ("two signers", f"Number of signers: 2\nSigner #1 certificate SHA-256 digest: {CERT_SHA}\n", 0),
+            ("two certificates", f"Number of signers: 1\nV2 Signer: certificate SHA-256 digest: {CERT_SHA}\nV3.0 Signer: certificate SHA-256 digest: {'b' * 64}\n", 0),
+        ):
+            with self.subTest(label=label), self.assertRaises(module.ManifestError):
+                self.run_with_report(report, returncode)
+
+
 class ProvenanceTests(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()

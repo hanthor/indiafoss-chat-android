@@ -21,7 +21,7 @@ def run(*args):
 
 def verify_certificate(report, expected):
     fingerprints = re.findall(
-        r"^(?:Signer (?:#\d+|\(minSdkVersion=[^\n]+\))|V[234]\.[0-9]+ Signer:) certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
+        r"^(?:Signer (?:#\d+|\(minSdkVersion=[^\n]+\))|V[234](?:\.[0-9]+)? Signer:) certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
         report, re.MULTILINE,
     )
     # Source stamps and public-key digests do not identify the APK certificate.

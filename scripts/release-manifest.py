@@ -36,7 +36,7 @@ PREVIEW_PACKAGE = "org.indiafoss.chat"
 SHA256_RE = re.compile(r"[0-9a-f]{64}")
 COMMIT_RE = re.compile(r"[0-9a-f]{40}")
 CERT_LINE_RE = re.compile(
-    r"^(?:Signer (?:#\d+|\(minSdkVersion=[^\n]+\))|V[234]\.[0-9]+ Signer:) certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
+    r"^(?:Signer (?:#\d+|\(minSdkVersion=[^\n]+\))|V[234](?:\.[0-9]+)? Signer:) certificate SHA-256 digest: ([0-9a-fA-F]{64})$",
     re.MULTILINE,
 )
 

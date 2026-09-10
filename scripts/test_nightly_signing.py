@@ -10,7 +10,7 @@ spec.loader.exec_module(module)
 
 class CertificateReportTests(unittest.TestCase):
     def test_supported_android_tool_reports(self):
-        for label in ("Signer #1", "Signer (minSdkVersion=28, maxSdkVersion=2147483647)", "V3.0 Signer:"):
+        for label in ("Signer #1", "Signer (minSdkVersion=28, maxSdkVersion=2147483647)", "V3.0 Signer:", "V2 Signer:", "V3.1 Signer:"):
             with self.subTest(label=label):
                 module.verify_certificate(
                     f"Number of signers: 1\n{label} certificate SHA-256 digest: {'a' * 64}\n", "a" * 64)
