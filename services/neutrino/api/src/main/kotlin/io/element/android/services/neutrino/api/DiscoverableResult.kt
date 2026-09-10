@@ -22,6 +22,12 @@ sealed interface DiscoverableResult {
      * The Neutrino bindings compiled into this build have no
      * `set_discoverable` entry point, so there is no way to stop advertising.
      * The node advertises as it always has.
+     *
+     * The pinned bindings (see `services/neutrino/impl/build.gradle.kts`) carry
+     * the entry point and the real service calls it directly, so it never
+     * produces this today. It stays in the contract so the UI keeps an honest
+     * "not available" path should a future pin lack the binding again, and so
+     * test fakes can exercise that path.
      */
     data object Unavailable : DiscoverableResult
 

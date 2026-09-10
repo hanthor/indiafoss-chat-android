@@ -38,12 +38,21 @@ upstream commit `94cd8274`, aligned with the
 
 ## Building
 
-Same as upstream (Android Studio, JDK 21). The Neutrino bindings come from
-GitHub Packages (`io.element.neutrino:bindings`, published by
-`element-hq/neutrino-iroh`), which needs a token with `read:packages` even for
-public packages: set `GITHUB_TOKEN` locally, and add the repository secret
-`ELEMENT_BOT_TOKEN_NEUTRINO` (any PAT with `read:packages`) for the workflows
-in `.github/workflows`.
+Same as upstream (Android Studio, JDK 21). The Neutrino bindings are a
+pinned `.aar` that Gradle downloads from a
+[hanthor/indiafoss-companion release](https://github.com/hanthor/indiafoss-companion/releases)
+and checks against a SHA-256 — no GitHub Packages token is needed. The pin
+lives in two places that must change together: the `neutrino` entry in
+`gradle/libs.versions.toml` (the release name, currently
+`0.8.2-e2ee.2d85348-ble.15117e9`) and `neutrinoSha256` in
+`services/neutrino/impl/build.gradle.kts`. The version string records what the
+`.aar` was built from: `neutrino-iroh` version, then `-e2ee.<rev>` for the
+[hanthor/neutrino](https://github.com/hanthor/neutrino) homeserver crates
+(E2EE patches) and `-ble.<rev>` for
+[hanthor/neutrino-iroh](https://github.com/hanthor/neutrino-iroh) (the BLE
+mesh transport and the `set_discoverable` FFI behind the nearby-discovery
+toggle). The comment in that `build.gradle.kts` explains the provenance chain
+and how to verify a new asset before bumping.
 
 ---
 
