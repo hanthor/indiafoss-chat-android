@@ -19,9 +19,11 @@ open class DiscoveryOptInStateProvider : PreviewParameterProvider<DiscoveryOptIn
 }
 
 fun aDiscoveryOptInState(
+    isHideAvailable: Boolean = true,
     submitAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     eventSink: (DiscoveryOptInEvents) -> Unit = {},
 ) = DiscoveryOptInState(
+    isHideAvailable = isHideAvailable,
     submitAction = submitAction,
     eventSink = eventSink,
 )

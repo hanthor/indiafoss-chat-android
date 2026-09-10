@@ -54,5 +54,6 @@ dependencies {
     testImplementation(projects.libraries.permissions.test)
     testImplementation(projects.libraries.preferences.test)
     testImplementation(projects.features.lockscreen.test)
+    testImplementation(projects.services.neutrino.test)
     testImplementation(projects.services.toolbox.test)
 }

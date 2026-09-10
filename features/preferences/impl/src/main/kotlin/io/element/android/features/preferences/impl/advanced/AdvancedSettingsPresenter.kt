@@ -12,18 +12,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import dev.zacsweers.metro.Inject
 import io.element.android.compound.theme.Theme
 import io.element.android.compound.theme.mapToTheme
+import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
+import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.services.neutrino.api.DiscoverabilityNotAppliedException
 import io.element.android.services.neutrino.api.NeutrinoService
+import io.element.android.services.neutrino.api.satisfies
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
@@ -51,6 +56,8 @@ class AdvancedSettingsPresenter(
         val isDiscoverable by remember {
             sessionPreferencesStore.isDiscoverable()
         }.collectAsState(initial = true)
+        val isDiscoverabilityControlAvailable = remember { neutrinoService.isDiscoverabilityControlAvailable() }
+        val setDiscoverableAction = remember { mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized) }
         val isBlackThemeAllowed by remember {
             featureFlagService.isFeatureEnabledFlow(FeatureFlags.AllowBlackTheme)
         }.collectAsState(initial = false)
@@ -143,9 +150,18 @@ class AdvancedSettingsPresenter(
                     sessionPreferencesStore.setVideoCompressionPreset(event.videoPreset)
                 }
                 is AdvancedSettingsEvents.SetDiscoverable -> sessionCoroutineScope.launch {
-                    sessionPreferencesStore.setDiscoverable(event.discoverable)
-                    neutrinoService.setDiscoverable(event.discoverable)
+                    // Change the node first and persist only what it accepted, so the
+                    // saved preference (re-applied at the next start) never claims a
+                    // "hidden" the node is not delivering.
+                    suspend {
+                        val result = neutrinoService.setDiscoverable(event.discoverable)
+                        if (!result.satisfies(event.discoverable)) {
+                            throw DiscoverabilityNotAppliedException(result)
+                        }
+                        sessionPreferencesStore.setDiscoverable(event.discoverable)
+                    }.runCatchingUpdatingState(setDiscoverableAction)
                 }
+                AdvancedSettingsEvents.ClearDiscoverableError -> setDiscoverableAction.value = AsyncAction.Uninitialized
             }
         }
 
@@ -159,6 +175,8 @@ class AdvancedSettingsPresenter(
             mediaPreviewConfigState = mediaPreviewConfigState,
             liveLocationMinimumDistanceUpdate = liveLocationMinimumDistanceUpdate,
             isDiscoverable = isDiscoverable,
+            isDiscoverabilityControlAvailable = isDiscoverabilityControlAvailable,
+            setDiscoverableAction = setDiscoverableAction.value,
             eventSink = ::handleEvent,
         )
     }

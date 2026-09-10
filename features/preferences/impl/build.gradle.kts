@@ -121,5 +121,6 @@ dependencies {
     testImplementation(projects.libraries.sessionStorage.test)
     testImplementation(projects.services.appnavstate.impl)
     testImplementation(projects.services.analytics.test)
+    testImplementation(projects.services.neutrino.test)
     testImplementation(projects.services.toolbox.test)
 }

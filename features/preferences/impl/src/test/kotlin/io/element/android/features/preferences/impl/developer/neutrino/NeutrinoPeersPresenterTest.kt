@@ -8,7 +8,7 @@
 package io.element.android.features.preferences.impl.developer.neutrino
 
 import com.google.common.truth.Truth.assertThat
-import io.element.android.features.preferences.impl.developer.FakeNeutrinoService
+import io.element.android.services.neutrino.test.FakeNeutrinoService
 import io.element.android.services.neutrino.api.DiscoveredPeer
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.test

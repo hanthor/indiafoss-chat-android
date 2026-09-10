@@ -47,6 +47,8 @@ fun aAdvancedSettingsState(
     setTimelineMediaPreviewAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     setHideInviteAvatarsAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     isDiscoverable: Boolean = true,
+    isDiscoverabilityControlAvailable: Boolean = true,
+    setDiscoverableAction: AsyncAction<Unit> = AsyncAction.Uninitialized,
     eventSink: (AdvancedSettingsEvents) -> Unit = {},
 ) = AdvancedSettingsState(
     isDeveloperModeEnabled = isDeveloperModeEnabled,
@@ -63,5 +65,7 @@ fun aAdvancedSettingsState(
     ),
     liveLocationMinimumDistanceUpdate = liveLocationMinimumDistanceUpdate,
     isDiscoverable = isDiscoverable,
+    isDiscoverabilityControlAvailable = isDiscoverabilityControlAvailable,
+    setDiscoverableAction = setDiscoverableAction,
     eventSink = eventSink
 )

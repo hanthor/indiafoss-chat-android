@@ -13,7 +13,7 @@ import app.cash.molecule.moleculeFlow
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.compound.theme.Theme
-import io.element.android.features.preferences.impl.developer.FakeNeutrinoService
+import io.element.android.services.neutrino.test.FakeNeutrinoService
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.featureflag.test.FakeFeatureFlagService
@@ -22,10 +22,13 @@ import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import io.element.android.libraries.preferences.test.InMemoryAppPreferencesStore
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
+import io.element.android.services.neutrino.api.DiscoverabilityNotAppliedException
+import io.element.android.services.neutrino.api.DiscoverableResult
 import io.element.android.services.neutrino.api.NeutrinoService
 import io.element.android.tests.testutils.WarmUpRule
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -400,6 +403,89 @@ class AdvancedSettingsPresenterTest {
                 assertThat(mediaPreviewConfigState.setHideInviteAvatarsAction).isEqualTo(AsyncAction.Loading)
                 assertThat(mediaPreviewConfigState.setTimelineMediaPreviewAction).isEqualTo(AsyncAction.Success(Unit))
             }
+        }
+    }
+
+    @Test
+    fun `present - discoverable off applies to the node then persists`() = runTest {
+        val neutrinoService = FakeNeutrinoService()
+        val sessionPreferencesStore = InMemorySessionPreferencesStore()
+        val presenter = createAdvancedSettingsPresenter(
+            sessionPreferencesStore = sessionPreferencesStore,
+            neutrinoService = neutrinoService,
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            skipItems(1)
+            with(awaitItem()) {
+                assertThat(isDiscoverable).isTrue()
+                assertThat(isDiscoverabilityControlAvailable).isTrue()
+                assertThat(setDiscoverableAction).isEqualTo(AsyncAction.Uninitialized)
+                eventSink(AdvancedSettingsEvents.SetDiscoverable(false))
+            }
+            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Loading)
+            with(awaitItem()) {
+                assertThat(setDiscoverableAction).isEqualTo(AsyncAction.Success(Unit))
+                assertThat(isDiscoverable).isFalse()
+            }
+            assertThat(neutrinoService.setDiscoverableCalls).containsExactly(false)
+            assertThat(sessionPreferencesStore.isDiscoverable().first()).isFalse()
+        }
+    }
+
+    @Test
+    fun `present - discoverable off is not persisted when the node refuses`() = runTest {
+        val neutrinoService = FakeNeutrinoService(
+            setDiscoverableResult = { DiscoverableResult.Failed("Neutrino is not running") },
+        )
+        val sessionPreferencesStore = InMemorySessionPreferencesStore()
+        val presenter = createAdvancedSettingsPresenter(
+            sessionPreferencesStore = sessionPreferencesStore,
+            neutrinoService = neutrinoService,
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            skipItems(1)
+            awaitItem().eventSink(AdvancedSettingsEvents.SetDiscoverable(false))
+            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Loading)
+            with(awaitItem()) {
+                val error = (setDiscoverableAction as AsyncAction.Failure).error
+                assertThat(error).isInstanceOf(DiscoverabilityNotAppliedException::class.java)
+                assertThat(error).hasMessageThat().isEqualTo("Neutrino is not running")
+                assertThat(isDiscoverable).isTrue()
+                eventSink(AdvancedSettingsEvents.ClearDiscoverableError)
+            }
+            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Uninitialized)
+            assertThat(sessionPreferencesStore.isDiscoverable().first()).isTrue()
+        }
+    }
+
+    @Test
+    fun `present - discoverability control unavailable in this build`() = runTest {
+        val neutrinoService = FakeNeutrinoService(discoverabilityControlAvailable = false)
+        val sessionPreferencesStore = InMemorySessionPreferencesStore()
+        val presenter = createAdvancedSettingsPresenter(
+            sessionPreferencesStore = sessionPreferencesStore,
+            neutrinoService = neutrinoService,
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            presenter.present()
+        }.test {
+            skipItems(1)
+            with(awaitItem()) {
+                assertThat(isDiscoverabilityControlAvailable).isFalse()
+                // Even if something sends the event, hiding is refused and never recorded.
+                eventSink(AdvancedSettingsEvents.SetDiscoverable(false))
+            }
+            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Loading)
+            with(awaitItem()) {
+                val error = (setDiscoverableAction as AsyncAction.Failure).error as DiscoverabilityNotAppliedException
+                assertThat(error.result).isEqualTo(DiscoverableResult.Unavailable)
+                assertThat(isDiscoverable).isTrue()
+            }
+            assertThat(sessionPreferencesStore.isDiscoverable().first()).isTrue()
         }
     }
 

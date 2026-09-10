@@ -28,6 +28,7 @@ import io.element.android.libraries.matrix.api.core.SessionId
 import io.element.android.libraries.matrix.test.A_SESSION_ID
 import io.element.android.services.neutrino.api.CaptureResult
 import io.element.android.services.neutrino.api.NeutrinoService
+import io.element.android.services.neutrino.test.FakeNeutrinoService
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.consumeItemsUntilPredicate
 import io.element.android.tests.testutils.lambda.lambdaRecorder

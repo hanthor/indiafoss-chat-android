@@ -30,7 +30,9 @@ import androidx.compose.ui.unit.dp
 import im.vector.app.features.analytics.plan.Interaction
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.features.preferences.impl.R
+import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.coverage.ExcludeFromCoverage
+import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
 import io.element.android.libraries.designsystem.components.dialogs.ListDialog
 import io.element.android.libraries.designsystem.components.list.ListItemContent
 import io.element.android.libraries.designsystem.components.preferences.PreferenceCategory
@@ -300,13 +302,33 @@ private fun NearbyDiscovery(
         title = stringResource(R.string.screen_advanced_settings_nearby_discovery_section_title),
         showTopDivider = true,
     ) {
-        PreferenceSwitch(
-            title = stringResource(R.string.screen_advanced_settings_discoverable_toggle_title),
-            subtitle = stringResource(R.string.screen_advanced_settings_discoverable_toggle_description),
-            isChecked = state.isDiscoverable,
-            onCheckedChange = {
-                state.eventSink(AdvancedSettingsEvents.SetDiscoverable(it))
-            },
+        if (state.isDiscoverabilityControlAvailable) {
+            PreferenceSwitch(
+                title = stringResource(R.string.screen_advanced_settings_discoverable_toggle_title),
+                subtitle = stringResource(R.string.screen_advanced_settings_discoverable_toggle_description),
+                isChecked = state.isDiscoverable,
+                enabled = !state.setDiscoverableAction.isLoading(),
+                onCheckedChange = {
+                    state.eventSink(AdvancedSettingsEvents.SetDiscoverable(it))
+                },
+            )
+        } else {
+            // The bindings in this build cannot stop advertising, so the node is
+            // discoverable whatever the saved preference says: show that, locked.
+            PreferenceSwitch(
+                title = stringResource(R.string.screen_advanced_settings_discoverable_toggle_title),
+                subtitle = stringResource(R.string.screen_advanced_settings_discoverable_unavailable_description),
+                isChecked = true,
+                enabled = false,
+                onCheckedChange = {},
+            )
+        }
+    }
+    val setDiscoverableAction = state.setDiscoverableAction
+    if (setDiscoverableAction is AsyncAction.Failure) {
+        ErrorDialog(
+            content = stringResource(R.string.screen_advanced_settings_discoverable_error, setDiscoverableAction.error.message.orEmpty()),
+            onSubmit = { state.eventSink(AdvancedSettingsEvents.ClearDiscoverableError) },
         )
     }
 }

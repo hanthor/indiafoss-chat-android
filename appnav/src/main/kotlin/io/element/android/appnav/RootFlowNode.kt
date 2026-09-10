@@ -68,6 +68,7 @@ import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
 import io.element.android.libraries.matrix.api.permalink.PermalinkData
 import io.element.android.libraries.oauth.api.OAuthAction
 import io.element.android.libraries.oauth.api.OAuthActionFlow
+import io.element.android.libraries.preferences.api.store.SessionPreferencesStoreFactory
 import io.element.android.libraries.sessionstorage.api.LoggedInState
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.libraries.ui.common.nodes.emptyNode
@@ -77,6 +78,7 @@ import io.element.android.services.analytics.api.watchers.AnalyticsColdStartWatc
 import io.element.android.services.appnavstate.api.ROOM_OPENED_FROM_NOTIFICATION
 import io.element.android.services.neutrino.api.NeutrinoService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -115,6 +117,7 @@ class RootFlowNode(
     private val analyticsColdStartWatcher: AnalyticsColdStartWatcher,
     private val neutrinoService: NeutrinoService,
     private val authenticationService: MatrixAuthenticationService,
+    private val sessionPreferencesStoreFactory: SessionPreferencesStoreFactory,
     @AppCoroutineScope private val appCoroutineScope: CoroutineScope,
 ) : BaseFlowNode<RootFlowNode.NavTarget>(
     backstack = BackStack(
@@ -144,7 +147,9 @@ class RootFlowNode(
             // Hard gate: stay on the splash until BLE permissions are granted and
             // Bluetooth is on, then start the embedded homeserver before routing anywhere.
             neutrinoPrerequisitesMet.first { it }
-            neutrinoService.start()
+            // Honour a saved "stay hidden" choice from the node's first moment,
+            // rather than advertising until the settings screen re-applies it.
+            neutrinoService.start(discoverable = savedDiscoverabilityChoice())
             // `start()` returns before the CS listener is bound; wait for it so the
             // auto-login below (and the profile write during onboarding) don't race
             // the bind and fail with "connection refused".
@@ -245,6 +250,23 @@ class RootFlowNode(
     private fun switchToNotLoggedInFlow(params: LoginParams?) {
         matrixSessionCache.removeAll()
         backstack.safeRoot(NavTarget.NotLoggedInFlow(params))
+    }
+
+    // The user's "let people near you find you?" answer lives in the session
+    // preferences, but no session scope exists yet when the node starts. Read it
+    // through an ephemeral store for the last-used session (the single forced
+    // user) and drop that store again, as AppMigration02 does. Defaults to
+    // discoverable when there is no session yet (first run: the FTUE prompt asks).
+    private suspend fun savedDiscoverabilityChoice(): Boolean {
+        val session = sessionStore.getLatestSession() ?: return true
+        val sessionId = SessionId(session.userId)
+        return coroutineScope {
+            try {
+                sessionPreferencesStoreFactory.get(sessionId, this).isDiscoverable().first()
+            } finally {
+                sessionPreferencesStoreFactory.remove(sessionId)
+            }
+        }
     }
 
     /**

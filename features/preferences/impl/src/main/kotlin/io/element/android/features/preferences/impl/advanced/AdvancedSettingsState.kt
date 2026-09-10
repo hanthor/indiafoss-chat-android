@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.res.stringResource
 import io.element.android.features.preferences.impl.R
+import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.designsystem.components.preferences.DropdownOption
 import io.element.android.libraries.preferences.api.store.VideoCompressionPreset
 import kotlinx.collections.immutable.ImmutableList
@@ -26,6 +27,11 @@ data class AdvancedSettingsState(
     val mediaPreviewConfigState: MediaPreviewConfigState,
     val liveLocationMinimumDistanceUpdate: Int?,
     val isDiscoverable: Boolean,
+    // False when this build's Neutrino bindings cannot stop advertising: the
+    // toggle is then shown disabled and on, with an explanation, rather than
+    // pretending "off" hides anyone.
+    val isDiscoverabilityControlAvailable: Boolean,
+    val setDiscoverableAction: AsyncAction<Unit>,
     val eventSink: (AdvancedSettingsEvents) -> Unit
 )
 

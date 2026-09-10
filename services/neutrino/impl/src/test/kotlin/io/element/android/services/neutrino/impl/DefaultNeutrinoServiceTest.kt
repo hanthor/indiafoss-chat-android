@@ -10,10 +10,12 @@ package io.element.android.services.neutrino.impl
 import android.content.Context
 import com.google.common.truth.Truth.assertThat
 import io.element.android.services.neutrino.api.CaptureResult
+import io.element.android.services.neutrino.api.DiscoverableResult
 import io.element.android.services.neutrino.api.NetworkAddressProvider
 import io.element.neutrino.NeutrinoHandle
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import io.element.neutrino.DiscoveredPeer as NativeDiscoveredPeer
 
@@ -96,5 +98,115 @@ class DefaultNeutrinoServiceTest {
 
         assertThat(service.serverName()).isEqualTo("node.local")
         assertThat(service.lastError()).isEqualTo("connection lost")
+    }
+
+    @Test
+    fun `isDiscoverabilityControlAvailable reflects the binding`() {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        service.discoverableBinding = FakeDiscoverableBinding(isAvailable = false)
+        assertThat(service.isDiscoverabilityControlAvailable()).isFalse()
+        service.discoverableBinding = FakeDiscoverableBinding(isAvailable = true)
+        assertThat(service.isDiscoverabilityControlAvailable()).isTrue()
+    }
+
+    @Test
+    fun `setDiscoverable returns Unavailable and does not call the binding when the build lacks it`() = runTest {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        val binding = FakeDiscoverableBinding(isAvailable = false)
+        service.discoverableBinding = binding
+        service.handle = mockk<NeutrinoHandle>()
+
+        assertThat(service.setDiscoverable(false)).isEqualTo(DiscoverableResult.Unavailable)
+        assertThat(binding.calls).isEmpty()
+    }
+
+    @Test
+    fun `setDiscoverable returns Failed when the node is not running`() = runTest {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        val binding = FakeDiscoverableBinding(isAvailable = true)
+        service.discoverableBinding = binding
+
+        val result = service.setDiscoverable(false)
+
+        assertThat(result).isEqualTo(DiscoverableResult.Failed("Neutrino is not running"))
+        assertThat(binding.calls).isEmpty()
+    }
+
+    @Test
+    fun `setDiscoverable calls the native binding and returns Applied`() = runTest {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        val binding = FakeDiscoverableBinding(isAvailable = true)
+        service.discoverableBinding = binding
+        service.handle = mockk<NeutrinoHandle>()
+
+        assertThat(service.setDiscoverable(false)).isEqualTo(DiscoverableResult.Applied)
+        assertThat(service.setDiscoverable(true)).isEqualTo(DiscoverableResult.Applied)
+        assertThat(binding.calls).containsExactly(false, true).inOrder()
+    }
+
+    @Test
+    fun `setDiscoverable surfaces a throwing binding as Failed`() = runTest {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        service.discoverableBinding = FakeDiscoverableBinding(isAvailable = true, failure = IllegalStateException("adapter off"))
+        service.handle = mockk<NeutrinoHandle>()
+
+        assertThat(service.setDiscoverable(false)).isEqualTo(DiscoverableResult.Failed("adapter off"))
+    }
+
+    @Test
+    fun `reflective binding is unavailable when the facade class is missing`() {
+        val binding = ReflectiveDiscoverableBinding(className = "io.element.neutrino.ble.DoesNotExistKt")
+        assertThat(binding.isAvailable).isFalse()
+    }
+
+    @Test
+    fun `reflective binding resolves and invokes a static setDiscoverable(boolean)`() {
+        val binding = ReflectiveDiscoverableBinding(className = SetDiscoverableFixture::class.java.name)
+        assertThat(binding.isAvailable).isTrue()
+
+        binding.setDiscoverable(false)
+
+        assertThat(SetDiscoverableFixture.calls).containsExactly(false)
+    }
+
+    @Test
+    fun `reflective binding rethrows what the entry point throws`() {
+        val binding = ReflectiveDiscoverableBinding(className = ThrowingSetDiscoverableFixture::class.java.name)
+        assertThat(binding.isAvailable).isTrue()
+
+        val thrown = runCatching { binding.setDiscoverable(true) }.exceptionOrNull()
+
+        assertThat(thrown).isInstanceOf(IllegalStateException::class.java)
+        assertThat(thrown).hasMessageThat().isEqualTo("ffi boom")
+    }
+}
+
+private class FakeDiscoverableBinding(
+    override val isAvailable: Boolean,
+    private val failure: Throwable? = null,
+) : DiscoverableBinding {
+    val calls = mutableListOf<Boolean>()
+
+    override fun setDiscoverable(discoverable: Boolean) {
+        failure?.let { throw it }
+        calls += discoverable
+    }
+}
+
+/** Stands in for the uniffi-generated `Neutrino_bleKt.setDiscoverable(boolean)` facade. */
+object SetDiscoverableFixture {
+    val calls = mutableListOf<Boolean>()
+
+    @JvmStatic
+    fun setDiscoverable(discoverable: Boolean) {
+        calls += discoverable
+    }
+}
+
+object ThrowingSetDiscoverableFixture {
+    @JvmStatic
+    @Suppress("UNUSED_PARAMETER")
+    fun setDiscoverable(discoverable: Boolean) {
+        error("ffi boom")
     }
 }
