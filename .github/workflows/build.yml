@@ -11,10 +11,18 @@ on:
 permissions:
   contents: read
 
+# Allow all runs on main (one per commit). Just one per PR: a new push cancels the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 # Enrich gradle.properties for CI/CD
 env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx4g
-  CI_GRADLE_ARG_PROPERTIES: --stacktrace --no-configuration-cache
+  # gradle.properties enables the configuration cache, build cache and parallel execution; the
+  # upstream Element X `--no-configuration-cache` / `--no-daemon` flags are intentionally not set
+  # here (setup-gradle stops the daemon at the end of the job).
+  CI_GRADLE_ARG_PROPERTIES: --stacktrace
   # Used by Gradle (settings.gradle.kts) to resolve the Neutrino bindings from GitHub Packages
   # (element-hq/neutrino). The default github.token cannot read packages from other repositories,
   # so a PAT with read:packages scope is used instead.
@@ -26,12 +34,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        variant: [debug, release]
+        # Pull requests only build the debug APKs; the release bundle is compiled on pushes to
+        # main, in the merge queue and on manual dispatch (a tag push would make zizmor flag the
+        # Gradle cache as a cache-poisoning risk, so tags are not a trigger here).
+        variant: ${{ fromJSON(github.event_name == 'pull_request' && '["debug"]' || '["debug", "release"]') }}
       fail-fast: false
-    # Allow all jobs on develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/develop' && format('build-develop-{0}-{1}', matrix.variant, github.sha) || format('build-{0}-{1}', matrix.variant, github.ref)  }}
-      cancel-in-progress: true
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
@@ -49,7 +56,7 @@ jobs:
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -63,7 +70,9 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Assemble debug APKs
         if: ${{ matrix.variant == 'debug' }}
         run: ./gradlew :app:assembleGplayDebug app:assembleFDroidDebug -PallWarningsAsErrors=true $CI_GRADLE_ARG_PROPERTIES

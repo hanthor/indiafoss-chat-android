@@ -11,10 +11,18 @@ on:
 permissions:
   contents: read
 
+# Allow all runs on main (one per commit). Just one per PR: a new push cancels the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 # Enrich gradle.properties for CI/CD
 env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx8g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError -XX:+UseG1GC -Dkotlin.daemon.jvm.options=-Xmx4g
-  CI_GRADLE_ARG_PROPERTIES: --stacktrace --no-daemon --no-configuration-cache
+  # gradle.properties enables the configuration cache, build cache and parallel execution; the
+  # upstream Element X `--no-configuration-cache` / `--no-daemon` flags are intentionally not set
+  # here (setup-gradle stops the daemon at the end of the job).
+  CI_GRADLE_ARG_PROPERTIES: --stacktrace
   # Used by Gradle (settings.gradle.kts) to resolve the Neutrino bindings from GitHub Packages
   # (element-hq/neutrino). The default github.token cannot read packages from other repositories,
   # so a PAT with read:packages scope is used instead.
@@ -74,7 +82,9 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Set up Python 3.12
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
@@ -86,14 +96,10 @@ jobs:
   konsist:
     name: Konsist tests
     runs-on: ubuntu-latest
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('check-konsist-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('check-konsist-develop-{0}', github.sha) || format('check-konsist-{0}', github.ref) }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -105,9 +111,11 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Run Konsist tests
-        run: ./gradlew :tests:konsist:testDebugUnitTest $CI_GRADLE_ARG_PROPERTIES --no-daemon
+        run: ./gradlew :tests:konsist:testDebugUnitTest $CI_GRADLE_ARG_PROPERTIES
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -119,14 +127,10 @@ jobs:
   compose:
     name: Compose tests
     runs-on: ubuntu-latest
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('check-compose-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('check-compose-develop-{0}', github.sha) || format('check-compose-{0}', github.ref) }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -138,21 +142,19 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Run compose tests
         run: ./tools/compose/check_stability.sh
 
   lint:
     name: Android lint check
     runs-on: ubuntu-latest
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('check-lint-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('check-lint-develop-{0}', github.sha) || format('check-lint-{0}', github.ref) }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -164,7 +166,9 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Build Gplay Debug
         run: ./gradlew :app:compileGplayDebugKotlin $CI_GRADLE_ARG_PROPERTIES
       - name: Build Fdroid Debug
@@ -182,14 +186,10 @@ jobs:
   detekt:
     name: Detekt checks
     runs-on: ubuntu-latest
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('check-detekt-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('check-detekt-develop-{0}', github.sha) || format('check-detekt-{0}', github.ref) }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -201,9 +201,11 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Run Detekt
-        run: ./gradlew detekt $CI_GRADLE_ARG_PROPERTIES --no-daemon
+        run: ./gradlew detekt $CI_GRADLE_ARG_PROPERTIES
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -215,14 +217,10 @@ jobs:
   ktlint:
     name: Ktlint checks
     runs-on: ubuntu-latest
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('check-ktlint-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('check-ktlint-develop-{0}', github.sha) || format('check-ktlint-{0}', github.ref) }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
@@ -234,7 +232,9 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
       - name: Run Ktlint check
         run: ./gradlew ktlintCheck $CI_GRADLE_ARG_PROPERTIES
       - name: Upload reports
@@ -248,14 +248,10 @@ jobs:
   docs:
     name: Doc checks
     runs-on: ubuntu-latest
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('check-docs-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('check-docs-develop-{0}', github.sha) || format('check-docs-{0}', github.ref) }}
-      cancel-in-progress: true
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
           persist-credentials: false
