@@ -183,7 +183,7 @@ object ConferenceLinks {
             "speaker" -> encodedId?.let { "/speaker/$it" } ?: "/schedule"
             else -> return ConferenceLinkDispatch.Rejected("unknown indiafoss host")
         }
-        val companionUri = if (host == "event" || (host in NATIVE_ROUTE_HOSTS && id != null)) {
+        val companionUri = if (host == "event" || host in NATIVE_ROUTE_HOSTS && id != null) {
             "$SCHEME://$host/${encodedId.orEmpty()}".toUri()
         } else {
             null
