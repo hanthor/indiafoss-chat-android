@@ -517,5 +517,4 @@ private fun calculateServerNamesForRoom(room: JoinedRoom): List<String> {
             map.keys.sortedByDescending { map[it] }
         }
         .take(3)
-
 }

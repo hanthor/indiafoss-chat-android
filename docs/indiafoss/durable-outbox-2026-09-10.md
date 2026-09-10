@@ -80,7 +80,8 @@ read → solid tick; failed/cancelled → nothing (the timestamp is red).
 uncertain message and taps it to retry on the same route. Existing preview
 states are untouched (their `outboxState` is null); the two new previews
 (`TimelineEventTimestampViewOutboxPreview`,
-`TimelineItemReadReceiptViewOutboxPreview`) need goldens recorded locally.
+`TimelineItemReadReceiptViewOutboxPreview`) have goldens adopted from CI, see
+below.
 
 ## Known limits of step 1
 
@@ -113,3 +114,32 @@ states are untouched (their `outboxState` is null); the two new previews
 5. Merged DM timelines with account/provenance and independent crypto
    verification visible; all relations keep their original room/event
    identity.
+
+## Screenshot goldens
+
+The 22 goldens for the two new previews were taken from the `tests-and-screenshot-tests-results` artifact of [CI run 34459558162](https://github.com/hanthor/indiafoss-chat-android/actions/runs/34459558162) (head `ecd8450d`), reviewed, and copied byte-for-byte under Git LFS, following `snapshot-recovery-2026-09-08.md`.
+
+| Image | SHA-256 |
+| --- | --- |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_0_en.png` | `dbec6d74587e7e0897a7cb2e614b4e661d94c53f88c3177686aa6a3e582bacd5` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_1_en.png` | `dbec6d74587e7e0897a7cb2e614b4e661d94c53f88c3177686aa6a3e582bacd5` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_2_en.png` | `f10cdd8ca44d2ca20a4a2a99a9847480f6059db98c8c52104efb018866ffe12c` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_3_en.png` | `d4abad9da7585d3890ac98ab3c1ad3bd1225ed4e8328cad513d3a94a24ebe353` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_4_en.png` | `8c66879c286a7f88e4b150cb9c2437380c40be4a9aec7194b06f62335d24212c` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_5_en.png` | `3764d8bd7dc2783a8af43aad65a217d7e533ed17c4d4367b7994470bf35b62b0` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_6_en.png` | `3764d8bd7dc2783a8af43aad65a217d7e533ed17c4d4367b7994470bf35b62b0` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Day_7_en.png` | `3764d8bd7dc2783a8af43aad65a217d7e533ed17c4d4367b7994470bf35b62b0` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_0_en.png` | `074c6afc0f73a606b0c8dd6c202ba50164aa64f5a5be717f33b9c8d83dd28098` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_1_en.png` | `074c6afc0f73a606b0c8dd6c202ba50164aa64f5a5be717f33b9c8d83dd28098` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_2_en.png` | `fd2cec1edd939372e4ea272e24f12e63d0e410a3b956b6e076b9cf38165574d0` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_3_en.png` | `59e1708bf79817706bd971d6272aa0e6ea9d626ec53b6417b7d29b8e23be575c` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_4_en.png` | `f450b2353ac5648c963375a8f973584be2d07ff3d09b36ca914fe8884fb6fd5f` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_5_en.png` | `3764d8bd7dc2783a8af43aad65a217d7e533ed17c4d4367b7994470bf35b62b0` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_6_en.png` | `3764d8bd7dc2783a8af43aad65a217d7e533ed17c4d4367b7994470bf35b62b0` |
+| `features.messages.impl.timeline.components.receipt_TimelineItemReadReceiptViewOutbox_Night_7_en.png` | `3764d8bd7dc2783a8af43aad65a217d7e533ed17c4d4367b7994470bf35b62b0` |
+| `features.messages.impl.timeline.components_TimelineEventTimestampViewOutbox_Day_0_en.png` | `0dbb5b304fe682974a66804c0d50590746a96e0e3ec8c525462a042ad8980a0c` |
+| `features.messages.impl.timeline.components_TimelineEventTimestampViewOutbox_Day_1_en.png` | `975d7df023076903834fdb422a3315a6dd812a27a409aa65f386ef115f14de12` |
+| `features.messages.impl.timeline.components_TimelineEventTimestampViewOutbox_Day_2_en.png` | `4e89559b69d483ffab3da4623afcda3d85abece9090b617c06ef2e37db4a52e1` |
+| `features.messages.impl.timeline.components_TimelineEventTimestampViewOutbox_Night_0_en.png` | `ed4e95fa334c5d009db0b34f51a89c93541bcb55ea0861bf7c3524b1d3eaeba8` |
+| `features.messages.impl.timeline.components_TimelineEventTimestampViewOutbox_Night_1_en.png` | `0b811d35287a8317948194bd6ecf9f61403fbce3e9f5322296ca67ca53b742c2` |
+| `features.messages.impl.timeline.components_TimelineEventTimestampViewOutbox_Night_2_en.png` | `0dee9fccafdf8a33c60dd5cec0bd758ce4cb97046941b4c50edf52c0867d99d7` |
