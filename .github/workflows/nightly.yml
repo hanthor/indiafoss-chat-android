@@ -97,6 +97,45 @@ jobs:
           if not match or match.groups() != expected:
               raise SystemExit('APK package/version does not match the preview identity')
           PY
+      - name: Sign and verify the arm64-v8a APK
+        # The universal APK carries the native libraries for four architectures and
+        # every phone uses one of them, which is most of its size. Publish the
+        # arm64-v8a build too so an attendee on venue wifi has a smaller download.
+        env:
+          NIGHTLY_KEYSTORE_BASE64: ${{ secrets.NIGHTLY_KEYSTORE_BASE64 }}
+          NIGHTLY_KEYSTORE_PASSWORD: ${{ secrets.NIGHTLY_KEYSTORE_PASSWORD }}
+          NIGHTLY_KEY_ALIAS: ${{ vars.NIGHTLY_KEY_ALIAS }}
+          NIGHTLY_CERT_SHA256: ${{ vars.NIGHTLY_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          export APKSIGNER="$tools/apksigner" ZIPALIGN="$tools/zipalign"
+          mapfile -t apks < <(find app/build/outputs/apk/fdroid/release -name '*-arm64-v8a-release-unsigned.apk')
+          test "${#apks[@]}" -eq 1
+          # app/build.gradle.kts maps arm64-v8a to abi code 2 on the base code times ten.
+          export NIGHTLY_CODE=$((NIGHTLY_CODE * 10 + 2))
+          python3 scripts/sign-nightly.py "${apks[0]}" dist/indiafoss-chat-android-arm64-v8a.apk
+          "$tools/aapt" dump badging dist/indiafoss-chat-android-arm64-v8a.apk > "$RUNNER_TEMP/arm64-badging.txt"
+          python3 - "$RUNNER_TEMP/arm64-badging.txt" <<'PY'
+          import os, pathlib, re, sys
+          report = pathlib.Path(sys.argv[1]).read_text()
+          expected = ("org.indiafoss.chat", os.environ['NIGHTLY_CODE'], os.environ['NIGHTLY_VERSION'])
+          match = re.search(r"package: name='([^']+)' versionCode='([^']+)' versionName='([^']+)'", report)
+          if not match or match.groups() != expected:
+              raise SystemExit('arm64-v8a APK package/version does not match the preview identity')
+          PY
+          universal=$(stat -c %s dist/indiafoss-chat-android.apk)
+          arm64=$(stat -c %s dist/indiafoss-chat-android-arm64-v8a.apk)
+          test "$arm64" -lt "$universal" || {
+            echo "::error::The arm64-v8a APK is not smaller than the universal one; the split is not doing what this step exists for."
+            exit 1
+          }
+          {
+            echo "| APK | MiB |"
+            echo "| --- | --- |"
+            echo "| universal | $((universal / 1048576)) |"
+            echo "| arm64-v8a | $((arm64 / 1048576)) |"
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Build and verify the release manifest
         # Maps neutrino rev -> neutrino-iroh rev -> .aar SHA-256 -> Chat commit -> APK identity,
         # checksum, signer and CI evidence. Re-verifies the .aar hash and the APK signature
@@ -123,6 +162,22 @@ jobs:
           python3 scripts/release-manifest.py verify \
             --apk dist/indiafoss-chat-android.apk --manifest dist/release-manifest.json \
             --apksigner "$tools/apksigner" --expect-signer "$NIGHTLY_CERT_SHA256" "${previous[@]}"
+          # The arm64-v8a download gets its own manifest, so it can be verified
+          # offline exactly like the universal one rather than being taken on trust.
+          NIGHTLY_CODE=$((NIGHTLY_CODE + 2)) python3 scripts/release-manifest.py build \
+            --apk dist/indiafoss-chat-android-arm64-v8a.apk \
+            --output dist/release-manifest-arm64-v8a.json \
+            --aar "${aars[0]}" --apksigner "$tools/apksigner" --runs "$RUNNER_TEMP/source-runs.json" \
+            --flavour fdroid --build-type release --abi arm64-v8a
+          previous_arm64=()
+          if gh release download nightly --pattern release-manifest-arm64-v8a.json --output "$RUNNER_TEMP/previous-arm64.json" 2>/dev/null; then
+            previous_arm64=(--previous "$RUNNER_TEMP/previous-arm64.json")
+          else
+            echo "No previous release-manifest-arm64-v8a.json; skipping the monotonic versionCode check for arm64-v8a"
+          fi
+          NIGHTLY_CODE=$((NIGHTLY_CODE + 2)) python3 scripts/release-manifest.py verify \
+            --apk dist/indiafoss-chat-android-arm64-v8a.apk --manifest dist/release-manifest-arm64-v8a.json \
+            --apksigner "$tools/apksigner" --expect-signer "$NIGHTLY_CERT_SHA256" "${previous_arm64[@]}"
       - name: Publish verified download
         env:
           GH_TOKEN: ${{ github.token }}
@@ -133,23 +188,25 @@ jobs:
           import os, pathlib
           pathlib.Path('dist/release.md').write_text(f'''IndiaFOSS Chat Android preview {os.environ['NIGHTLY_VERSION']}.
 
-          Download **indiafoss-chat-android.apk** below. This is the dedicated Matrix/P2P chat app; the Companion is a separate app for your schedule, plan, map and contact card.
+          Download **indiafoss-chat-android-arm64-v8a.apk** below. Almost every Android phone made in the last several years is arm64-v8a, and it is much the smaller download. If it refuses to install, take **indiafoss-chat-android.apk** instead, which carries every architecture. Either one updates the other in place: same package, same signing key.
 
-          Android 7.0 or later. Universal APK, F-Droid build flavour; this is a GitHub preview, not an F-Droid store listing. Allow installation from your browser when Android asks.
+          This is the dedicated Matrix/P2P chat app; the Companion is a separate app for your schedule, plan, map and contact card.
+
+          Android 7.0 or later. F-Droid build flavour; this is a GitHub preview, not an F-Droid store listing. Allow installation from your browser when Android asks.
 
           Source: `{os.environ['GITHUB_SHA']}`. Source CI passed before publication; APK package, version, alignment and signature were verified. Physical-device mesh/background/recovery acceptance remains tracked in issues #45 and #49.
 
           Package: `org.indiafoss.chat`. Persistent preview signing certificate SHA-256: `{os.environ['NIGHTLY_CERT_SHA256']}`. Keep the same signing identity for future updates. Old debug-package builds are separate installs; their account data does not migrate automatically.
 
-          The SHA-256 checksum, signing metadata and `release-manifest.json` (Neutrino rev, neutrino-iroh rev, bindings .aar SHA-256, Chat commit, APK identity, signer and CI evidence; schema in docs/preview-release.md) are attached. Verify a download offline with `scripts/release-manifest.py verify`. Open the Companion: https://hanthor.github.io/indiafoss-companion/
+          Each download has its own SHA-256 checksum, signing metadata and release manifest attached (Neutrino rev, neutrino-iroh rev, bindings .aar SHA-256, Chat commit, APK identity, signer and CI evidence; schema in docs/preview-release.md). Verify a download offline with `scripts/release-manifest.py verify`. Open the Companion: https://hanthor.github.io/indiafoss-companion/
           ''')
           PY
           tag="preview-${NIGHTLY_VERSION}"
-          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json
+          gh release create "$tag" --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json dist/indiafoss-chat-android-arm64-v8a.apk dist/indiafoss-chat-android-arm64-v8a.apk.sha256 dist/indiafoss-chat-android-arm64-v8a.apk.signing.json dist/release-manifest-arm64-v8a.json
           if gh release view nightly >/dev/null 2>&1; then
             gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/nightly" -f sha="$GITHUB_SHA" -F force=true
-            gh release upload nightly dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json --clobber
+            gh release upload nightly dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json dist/indiafoss-chat-android-arm64-v8a.apk dist/indiafoss-chat-android-arm64-v8a.apk.sha256 dist/indiafoss-chat-android-arm64-v8a.apk.signing.json dist/release-manifest-arm64-v8a.json --clobber
             gh release edit nightly --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md --prerelease
           else
-            gh release create nightly --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json
+            gh release create nightly --target "$GITHUB_SHA" --prerelease --title "IndiaFOSS Chat ${NIGHTLY_VERSION}" --notes-file dist/release.md dist/indiafoss-chat-android.apk dist/indiafoss-chat-android.apk.sha256 dist/indiafoss-chat-android.apk.signing.json dist/release-manifest.json dist/indiafoss-chat-android-arm64-v8a.apk dist/indiafoss-chat-android-arm64-v8a.apk.sha256 dist/indiafoss-chat-android-arm64-v8a.apk.signing.json dist/release-manifest-arm64-v8a.json
           fi
