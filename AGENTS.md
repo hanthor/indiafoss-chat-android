@@ -56,6 +56,7 @@ PRs must meet these rules.
 - PR title = changelog entry — make it descriptive; no "Fixes #…" prefixes.
 - Include screenshots or screen recordings for any UI changes.
 - Keep PRs focused; split changes over 1000 lines.
+- Required CI checks on PRs, their exact names and expected durations: `docs/indiafoss/ci-checks.md`.
 
 ---
 

@@ -11,24 +11,126 @@ on:
 permissions:
   contents: read
 
+# Allow all runs on main (one per commit). Just one per PR: a new push cancels the previous run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  cancel-in-progress: true
+
 # Enrich gradle.properties for CI/CD
 env:
   GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx7g -XX:MaxMetaspaceSize=512m -Dfile.encoding=UTF-8 -XX:+HeapDumpOnOutOfMemoryError" -Dkotlin.daemon.jvm.options=-Xmx2g -XX:+UseG1GC
-  CI_GRADLE_ARG_PROPERTIES: --stacktrace --no-daemon --no-configuration-cache
+  # gradle.properties enables the configuration cache, build cache and parallel execution; the
+  # upstream Element X `--no-configuration-cache` / `--no-daemon` flags are intentionally not set
+  # here (setup-gradle stops the daemon at the end of the job).
+  CI_GRADLE_ARG_PROPERTIES: --stacktrace
   # Used by Gradle (settings.gradle.kts) to resolve the Neutrino bindings from GitHub Packages
   # (element-hq/neutrino). The default github.token cannot read packages from other repositories,
   # so a PAT with read:packages scope is used instead.
   GITHUB_TOKEN: ${{ secrets.ELEMENT_BOT_TOKEN_NEUTRINO }}
 
 jobs:
-  tests:
-    name: Runs unit tests
+  unit-tests:
+    name: Unit tests
     runs-on: ubuntu-latest
+    steps:
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        with:
+          # This might remove tools that are actually needed, if set to "true" but frees about 6 GB
+          tool-cache: true
+          # All of these default to true, but we should only need the 'android' one (and maybe swap-storage?)
+          android: false
+          dotnet: true
+          haskell: true
+          # This takes way too long to run (~2 minutes) and it saves only ~5.5GB
+          large-packages: false
+          docker-images: true
+          swap-storage: false
 
-    # Allow all jobs on main and develop. Just one per PR.
-    concurrency:
-      group: ${{ github.ref == 'refs/heads/main' && format('unit-tests-main-{0}', github.sha) || github.ref == 'refs/heads/develop' && format('unit-tests-develop-{0}', github.sha) || format('unit-tests-{0}', github.ref) }}
-      cancel-in-progress: true
+      # LFS is needed here too: libraries/mediaupload/impl/src/test/assets/* are LFS objects.
+      - name: ⏬ Checkout with LFS
+        uses: nschloe/action-cached-lfs-checkout@385a8ecc719e50b8c71af6ab01a624b486b7c3bc # v1.2.5
+        with:
+          # Ensure we are building the branch and not the branch after being merged on main
+          # https://github.com/actions/checkout/issues/881
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
+      - name: ☕️ Use JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: 'temurin' # See 'Supported distributions' for available options
+          java-version: '21'
+      - name: Configure gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+        with:
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
+
+      - name: Test report summary
+        run: python3 -m unittest discover -s .github/workflows/scripts -p 'test_*.py'
+
+      - name: Run unit tests
+        id: gradle-tests
+        run: |
+          read -r -a gradle_args <<< "$CI_GRADLE_ARG_PROPERTIES"
+          ./gradlew testDebugUnitTest "${gradle_args[@]}"
+
+      # The Kover report tasks depend on every module's testDebugUnitTest, so they must run in the
+      # same job as the tests: in a separate job they would run the whole unit-test suite again.
+      # The test tasks are UP-TO-DATE here; only the report merge and the verification run.
+      - name: Check coverage for debug variant
+        id: kover
+        run: |
+          read -r -a gradle_args <<< "$CI_GRADLE_ARG_PROPERTIES"
+          ./gradlew :koverXmlReportMerged :koverHtmlReportMerged :koverVerifyAll "${gradle_args[@]}"
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: kover-reports
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            build/reports/kover/
+            **/build/reports/kover/
+
+      - name: Upload unit test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: unit-tests-results
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            **/build/roborazzi/failures/
+            **/build/reports/tests/*UnitTest/
+            **/build/test-results/*UnitTest/*.xml
+
+      - name: Summarise test execution and available reports
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.kover.outcome == 'failure' && 'failure' || steps.gradle-tests.outcome }}
+        run: |
+          if [ -f .github/workflows/scripts/summarise_test_reports.py ]; then
+            python3 .github/workflows/scripts/summarise_test_reports.py . "$TEST_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Test reports unavailable: repository checkout did not complete." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Summarise Gradle test failures
+        if: ${{ failure() && steps.gradle-tests.outcome == 'failure' }}
+        run: |
+          {
+            echo "## Tests failed"
+            echo ""
+            python3 .github/workflows/scripts/parse_test_failures.py .
+            echo "---"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  screenshot-tests:
+    name: Screenshot tests
+    runs-on: ubuntu-latest
     steps:
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
@@ -54,10 +156,11 @@ jobs:
           sudo mkswap /mnt/swapfile
           sudo swapon /mnt/swapfile
           sudo swapon --show
+      # The Paparazzi golden images under tests/uitests/src/test/snapshots are LFS objects.
       - name: ⏬ Checkout with LFS
         uses: nschloe/action-cached-lfs-checkout@385a8ecc719e50b8c71af6ab01a624b486b7c3bc # v1.2.5
         with:
-          # Ensure we are building the branch and not the branch after being merged on develop
+          # Ensure we are building the branch and not the branch after being merged on main
           # https://github.com/actions/checkout/issues/881
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref }}
       - name: ☕️ Use JDK 21
@@ -68,57 +171,33 @@ jobs:
       - name: Configure gradle
         uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
         with:
-          cache-read-only: ${{ github.ref != 'refs/heads/develop' }}
+          # The default branch is main: write the dependency/build cache there, read it everywhere else.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          cache-cleanup: on-success
 
-      - name: Test report summary
-        run: python3 -m unittest discover -s .github/workflows/scripts -p 'test_*.py'
-
-      - name: Check coverage for debug variant (includes unit & screenshot tests)
+      - name: Run screenshot tests
         id: gradle-tests
         run: |
           read -r -a gradle_args <<< "$CI_GRADLE_ARG_PROPERTIES"
-          ./gradlew testDebugUnitTest :tests:uitests:verifyPaparazziDebug :koverXmlReportMerged :koverHtmlReportMerged :koverVerifyAll "${gradle_args[@]}"
+          ./gradlew :tests:uitests:verifyPaparazziDebug "${gradle_args[@]}"
 
-      - name: Upload coverage reports
+      - name: Upload screenshot test results
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: kover-reports
-          retention-days: 14
-          if-no-files-found: warn
-          path: |
-            build/reports/kover/
-            **/build/reports/kover/
-
-      - name: Upload test and screenshot results
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: tests-and-screenshot-tests-results
+          name: screenshot-tests-results
           retention-days: 14
           if-no-files-found: warn
           path: |
             **/build/paparazzi/failures/
-            **/build/roborazzi/failures/
-            **/build/reports/tests/*UnitTest/
-            **/build/test-results/*UnitTest/*.xml
-
-      - name: Summarise test execution and available reports
-        if: always()
-        env:
-          TEST_OUTCOME: ${{ steps.gradle-tests.outcome }}
-        run: |
-          if [ -f .github/workflows/scripts/summarise_test_reports.py ]; then
-            python3 .github/workflows/scripts/summarise_test_reports.py . "$TEST_OUTCOME" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "Test reports unavailable: repository checkout did not complete." >> "$GITHUB_STEP_SUMMARY"
-          fi
+            tests/uitests/build/reports/tests/*UnitTest/
+            tests/uitests/build/test-results/*UnitTest/*.xml
 
       - name: Summarise Gradle test failures
         if: ${{ failure() && steps.gradle-tests.outcome == 'failure' }}
         run: |
           {
-            echo "## Tests failed"
+            echo "## Screenshot tests failed"
             echo ""
             python3 .github/workflows/scripts/parse_test_failures.py .
             echo "---"
