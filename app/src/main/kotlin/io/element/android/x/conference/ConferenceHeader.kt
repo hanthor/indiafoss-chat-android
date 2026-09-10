@@ -36,23 +36,6 @@ import io.element.android.libraries.designsystem.utils.CommonDrawables
 import io.element.android.x.R
 
 /**
- * IndiaFOSS 2026 event colours, fixed in both themes. They live only on this
- * conference entry and the launch assets: conversations, dialogs and status
- * colours stay with Compound semantics. Source values are the official 2026
- * stylesheet primaries; see docs/indiafoss/branding-2026.md.
- */
-internal object ConferenceIdentity {
-    /** `hsl(144 92% 37%)`: the Companion's Material seed. */
-    val Mint = Color(0xFF0FB556)
-
-    /** `hsl(145 63% 18%)`: the launcher icon ground. */
-    val Ink = Color(0xFF114B29)
-
-    /** `hsl(145 92% 86%)`. */
-    val PaleGreen = Color(0xFFBAFCD6)
-}
-
-/**
  * Event-identity strip above the hosted Companion with the one action the
  * issue asks for: open the native Companion when it is installed, else the
  * same route in the browser.

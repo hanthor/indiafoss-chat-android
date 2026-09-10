@@ -80,6 +80,18 @@ and copied as in `snapshot-recovery-2026-09-08.md`):
 - `libraries.designsystem.icons_IconsOther_{Day,Night}_0_en.png` (notification icon)
 - `features.preferences.impl.about_AboutView_{Day,Night}_0_en.png` (attribution row and disclosure)
 
+Re-recorded from [CI run 34440321131](https://github.com/hanthor/indiafoss-chat-android/actions/runs/34440321131) (head `056c6957`), artefact `tests-and-screenshot-tests-results`, after reviewing each actual render; bytes copied unchanged.
+
+| Image | SHA-256 |
+| --- | --- |
+| `appicon.element_Icon_en.png` | `82625c59c0d676dcdbd5c9d49bcbff5ba742cffc45b8cb94cb073be637719df8` |
+| `appicon.element_RoundIcon_en.png` | `3465e1553ef7c3a2225e041b4cf3d0055930ea04c92e6b071b430214c2ea2ffd` |
+| `appicon.element_MonochromeIcon_en.png` | `a86a00be98d519408f85dfeeb18080b29194a78b806dee792e4aabb903f7cbbe` |
+| `libraries.designsystem.icons_IconsOther_Day_0_en.png` | `5a2b61832ad435d2ffde9a219f3bce57824ee23ae64dfbfa45f0db66461149ae` |
+| `libraries.designsystem.icons_IconsOther_Night_0_en.png` | `d7fd4bf6263f69de3f80d428914f11d1342dc773c275d44334ba21edc426e820` |
+| `features.preferences.impl.about_AboutView_Day_0_en.png` | `24f7c4e6aa61eab029d24a019791f76a64bc922ed99402db0950cc5b2bd797ad` |
+| `features.preferences.impl.about_AboutView_Night_0_en.png` | `b650bf3df3998e5a3308ca2d6e1ead9e66000d943c3d662e52a713ef09fd111d` |
+
 `ConferenceHeaderPreview` lives in the `app` module, which the screenshot
 suite does not scan, so it adds no golden. Onboarding previews are unchanged:
 the first-run lockup is resolved at runtime by resource name.

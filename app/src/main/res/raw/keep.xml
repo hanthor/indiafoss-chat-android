@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><!--
+  ~ Copyright 2026 IndiaFOSS Companion contributors
+  ~
+  ~ SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
+  ~ Please see LICENSE files in the repository root for full details.
+  -->
+<!-- onboarding_logo is looked up by name at runtime (OnBoardingLogoResIdProvider); keep it for lint and the shrinker. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/onboarding_logo" />
