@@ -5,9 +5,10 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.features.preferences.impl.developer
+package io.element.android.services.neutrino.test
 
 import io.element.android.services.neutrino.api.CaptureResult
+import io.element.android.services.neutrino.api.DiscoverableResult
 import io.element.android.services.neutrino.api.DiscoveredPeer
 import io.element.android.services.neutrino.api.NeutrinoService
 
@@ -19,10 +20,22 @@ class FakeNeutrinoService(
     // The location stopCapture reports (the real service copies to Downloads, so
     // this need not match the started path).
     private val stopCaptureResult: String? = "Download/$A_CAPTURE_NAME",
+    // Whether this "build" carries the set_discoverable binding. When false,
+    // setDiscoverable answers Unavailable regardless of setDiscoverableResult.
+    private val discoverabilityControlAvailable: Boolean = true,
+    private val setDiscoverableResult: (Boolean) -> DiscoverableResult = { DiscoverableResult.Applied },
 ) : NeutrinoService {
     private var capturing = false
 
-    override fun start() = Unit
+    /** The `discoverable` argument of each [start] call, in order. */
+    val startCalls = mutableListOf<Boolean>()
+
+    /** The argument of each [setDiscoverable] call, in order. */
+    val setDiscoverableCalls = mutableListOf<Boolean>()
+
+    override fun start(discoverable: Boolean) {
+        startCalls += discoverable
+    }
 
     override suspend fun awaitReady(timeoutMs: Long) = Unit
 
@@ -48,7 +61,12 @@ class FakeNeutrinoService(
 
     override fun isCapturing(): Boolean = capturing
 
-    override suspend fun setDiscoverable(discoverable: Boolean) = Unit
+    override fun isDiscoverabilityControlAvailable(): Boolean = discoverabilityControlAvailable
+
+    override suspend fun setDiscoverable(discoverable: Boolean): DiscoverableResult {
+        setDiscoverableCalls += discoverable
+        return if (discoverabilityControlAvailable) setDiscoverableResult(discoverable) else DiscoverableResult.Unavailable
+    }
 }
 
 private const val A_CAPTURE_NAME = "neutrino-fed.pcap"

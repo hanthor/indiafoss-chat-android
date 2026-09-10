@@ -19,7 +19,9 @@ import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.architecture.runCatchingUpdatingState
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.services.neutrino.api.DiscoverabilityNotAppliedException
 import io.element.android.services.neutrino.api.NeutrinoService
+import io.element.android.services.neutrino.api.satisfies
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -37,6 +39,7 @@ class DiscoveryOptInPresenter(
     @Composable
     override fun present(): DiscoveryOptInState {
         val submitAction = remember { mutableStateOf<AsyncAction<Unit>>(AsyncAction.Uninitialized) }
+        val isHideAvailable = remember { neutrinoService.isDiscoverabilityControlAvailable() }
         val coroutineScope = rememberCoroutineScope()
 
         fun handleEvent(event: DiscoveryOptInEvents) {
@@ -44,25 +47,32 @@ class DiscoveryOptInPresenter(
                 is DiscoveryOptInEvents.Choose -> if (submitAction.value !is AsyncAction.Loading) {
                     coroutineScope.submit(event.discoverable, submitAction)
                 }
+                DiscoveryOptInEvents.ClearError -> submitAction.value = AsyncAction.Uninitialized
             }
         }
 
         return DiscoveryOptInState(
+            isHideAvailable = isHideAvailable,
             submitAction = submitAction.value,
             eventSink = ::handleEvent,
         )
     }
 
-    // Persist the choice, tell the embedded node whether to keep advertising over
-    // the BLE mesh, then remember that we've prompted so it isn't asked again, and
-    // advance the FTUE.
+    // Tell the embedded node whether to keep advertising over the BLE mesh and,
+    // only once it has actually taken effect, persist the choice, remember that
+    // we've prompted so it isn't asked again, and advance the FTUE. If the node
+    // could not be changed the preference stays untouched, so the app never
+    // records a "hidden" it is not delivering.
     private fun CoroutineScope.submit(
         discoverable: Boolean,
         action: MutableState<AsyncAction<Unit>>,
     ) = launch {
         suspend {
+            val result = neutrinoService.setDiscoverable(discoverable)
+            if (!result.satisfies(discoverable)) {
+                throw DiscoverabilityNotAppliedException(result)
+            }
             sessionPreferencesStore.setDiscoverable(discoverable)
-            neutrinoService.setDiscoverable(discoverable)
             sessionPreferencesStore.setDiscoveryPromptCompleted(true)
         }.runCatchingUpdatingState(action)
         if (action.value is AsyncAction.Success) {

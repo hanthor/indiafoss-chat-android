@@ -17,6 +17,12 @@ plugins {
 
 android {
     namespace = "io.element.android.services.neutrino.impl"
+
+    buildTypes {
+        getByName("release") {
+            consumerProguardFiles("consumer-rules.pro")
+        }
+    }
 }
 
 setupDependencyInjection()

@@ -14,4 +14,7 @@
     <string name="screen_discovery_opt_in_subtitle">"When discoverable, nearby people can find you over the mesh by your display name. You can change this later in Advanced settings."</string>
     <string name="screen_discovery_opt_in_discoverable_action">"Make me discoverable"</string>
     <string name="screen_discovery_opt_in_hidden_action">"Stay hidden"</string>
+    <string name="screen_discovery_opt_in_continue_action">"Continue"</string>
+    <string name="screen_discovery_opt_in_unavailable_notice">"Hiding is not available in this build. Its mesh engine can\'t stop advertising yet, so nearby people can still find you by your display name."</string>
+    <string name="screen_discovery_opt_in_error">"Your choice could not be applied to the mesh engine, so nothing has changed. %1$s"</string>
 </resources>

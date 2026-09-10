@@ -13,8 +13,15 @@ package io.element.android.services.neutrino.api
 interface NeutrinoService {
     /**
      * Start the Neutrino embedded homeserver.
+     *
+     * [discoverable] is the user's saved "let people near you find you?" choice.
+     * When `false` the node is asked to hide from BLE discovery before it comes
+     * up, so a restart does not re-advertise a user who chose to stay hidden.
+     * Whether that request can be honoured depends on
+     * [isDiscoverabilityControlAvailable]; when it cannot, the node advertises
+     * as normal and a warning is logged.
      */
-    fun start()
+    fun start(discoverable: Boolean = true)
 
     /**
      * Suspend until the embedded homeserver's client-server API is accepting
@@ -79,10 +86,21 @@ interface NeutrinoService {
     fun isCapturing(): Boolean
 
     /**
+     * Whether the Neutrino bindings in this build expose the `set_discoverable`
+     * entry point at all. When `false`, [setDiscoverable] always returns
+     * [DiscoverableResult.Unavailable] and the UI must say so rather than offer a
+     * hide toggle that does nothing.
+     */
+    fun isDiscoverabilityControlAvailable(): Boolean
+
+    /**
      * Tell the embedded node whether to advertise this user over the BLE mesh.
      * When [discoverable] is `false` the node stops advertising, so nearby peers
      * can no longer discover this user. Backs the "let people near you find you?"
      * preference (ADR 0008).
+     *
+     * Only [DiscoverableResult.Applied] means the node's state changed; callers
+     * must not persist or display a "hidden" state on any other outcome.
      */
-    suspend fun setDiscoverable(discoverable: Boolean)
+    suspend fun setDiscoverable(discoverable: Boolean): DiscoverableResult
 }

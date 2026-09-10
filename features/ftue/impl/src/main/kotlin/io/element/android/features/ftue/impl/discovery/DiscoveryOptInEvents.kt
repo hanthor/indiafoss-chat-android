@@ -9,4 +9,5 @@ package io.element.android.features.ftue.impl.discovery
 
 sealed interface DiscoveryOptInEvents {
     data class Choose(val discoverable: Boolean) : DiscoveryOptInEvents
+    data object ClearError : DiscoveryOptInEvents
 }

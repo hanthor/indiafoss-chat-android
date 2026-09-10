@@ -19,6 +19,7 @@ import dev.zacsweers.metro.SingleIn
 import dev.zacsweers.metro.binding
 import io.element.android.libraries.di.annotations.ApplicationContext
 import io.element.android.services.neutrino.api.CaptureResult
+import io.element.android.services.neutrino.api.DiscoverableResult
 import io.element.android.services.neutrino.api.DiscoveredPeer
 import io.element.android.services.neutrino.api.NetworkAddressProvider
 import io.element.android.services.neutrino.api.NeutrinoService
@@ -57,6 +58,10 @@ class DefaultNeutrinoService(
 ) : NeutrinoService {
     var handle: NeutrinoHandle? = null
 
+    // The FFI's set_discoverable, resolved at runtime because the pinned .aar may
+    // not carry it (see ReflectiveDiscoverableBinding). Replaceable for tests.
+    internal var discoverableBinding: DiscoverableBinding = ReflectiveDiscoverableBinding()
+
     // Held so its NetworkCallback is not garbage-collected. Registered once, on
     // first successful start; lives for the app-singleton's process lifetime.
     private var connectivityKicker: ConnectivityKicker? = null
@@ -64,13 +69,21 @@ class DefaultNeutrinoService(
     // Held for as long as the node runs. See acquireMulticastLock.
     private var multicastLock: WifiManager.MulticastLock? = null
 
-    override fun start() {
+    override fun start(discoverable: Boolean) {
         if (handle != null) {
             return
         }
         val host = selectLanServerHost(networkAddressProvider.currentAddresses())
         val bindAddr = selectBindAddr(host)
-        Timber.i("Starting embedded Neutrino server (bind $bindAddr)")
+        Timber.i("Starting embedded Neutrino server (bind $bindAddr, discoverable $discoverable)")
+        // Apply the saved "stay hidden" choice before the node comes up. The FFI
+        // keeps the value in a process-global channel that the BLE transport
+        // drains when it binds, so a toggle sent before start is retained and the
+        // node never advertises this user (neutrino-iroh#15). The default is
+        // discoverable, so there is nothing to send in that case.
+        if (!discoverable) {
+            applyStartupHide()
+        }
         // Bring the BLE backend up before starting the server: the server binds its
         // iroh-over-BLE federation transport during start, so blew must be
         // initialised first. The caller (the startup splash) has already gated this
@@ -209,15 +222,37 @@ class DefaultNeutrinoService(
 
     override fun isCapturing(): Boolean = handle?.isCapturing() == true
 
-    override suspend fun setDiscoverable(discoverable: Boolean) {
-        // The Neutrino FFI binding `set_discoverable` exists in source but is not
-        // yet in the pinned prebuilt .aar, so calling it would not compile. Log for
-        // now; the plumbing (preferences + this call site) is complete end-to-end
-        // except for this final FFI hop.
-        Timber.d(
-            "setDiscoverable(%b) — TODO(on-device): call NeutrinoBindings.setDiscoverable once the .aar ships it",
-            discoverable,
-        )
+    override fun isDiscoverabilityControlAvailable(): Boolean = discoverableBinding.isAvailable
+
+    override suspend fun setDiscoverable(discoverable: Boolean): DiscoverableResult {
+        if (!discoverableBinding.isAvailable) {
+            Timber.w("setDiscoverable($discoverable) ignored: set_discoverable is not in this build's Neutrino bindings")
+            return DiscoverableResult.Unavailable
+        }
+        if (handle == null) {
+            return DiscoverableResult.Failed("Neutrino is not running")
+        }
+        return try {
+            withContext(Dispatchers.IO) { discoverableBinding.setDiscoverable(discoverable) }
+            Timber.i("Neutrino discoverable set to $discoverable")
+            DiscoverableResult.Applied
+        } catch (t: Throwable) {
+            Timber.e(t, "Neutrino set_discoverable($discoverable) failed")
+            DiscoverableResult.Failed(t.message ?: t.javaClass.simpleName)
+        }
+    }
+
+    private fun applyStartupHide() {
+        if (!discoverableBinding.isAvailable) {
+            Timber.w("Saved preference is 'hidden' but set_discoverable is not in this build's Neutrino bindings; the node will advertise")
+            return
+        }
+        try {
+            discoverableBinding.setDiscoverable(false)
+            Timber.i("Neutrino asked to stay hidden from BLE discovery before start")
+        } catch (t: Throwable) {
+            Timber.e(t, "Could not apply the saved 'hidden' preference before start; the node will advertise")
+        }
     }
 
     // Copy the finished pcap into the public Downloads collection so it lands at a

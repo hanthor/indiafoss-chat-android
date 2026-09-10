@@ -10,10 +10,13 @@ package io.element.android.features.ftue.impl.discovery
 import io.element.android.libraries.architecture.AsyncAction
 
 /*
- * @param submitAction progress of persisting the discoverability choice.
+ * @param isHideAvailable whether this build's Neutrino bindings can actually stop
+ * advertising. When false the screen must not offer "stay hidden" as if it worked.
+ * @param submitAction progress of applying and persisting the discoverability choice.
  * @param eventSink callback used to send [DiscoveryOptInEvents] to the presenter.
  */
 data class DiscoveryOptInState(
+    val isHideAvailable: Boolean,
     val submitAction: AsyncAction<Unit>,
     val eventSink: (DiscoveryOptInEvents) -> Unit,
 )

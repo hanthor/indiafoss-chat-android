@@ -23,4 +23,5 @@ sealed interface AdvancedSettingsEvents {
     data class SetHideInviteAvatars(val value: Boolean) : AdvancedSettingsEvents
     data class SetLiveLocationMinimumDistanceUpdate(val value: Int) : AdvancedSettingsEvents
     data class SetDiscoverable(val discoverable: Boolean) : AdvancedSettingsEvents
+    data object ClearDiscoverableError : AdvancedSettingsEvents
 }

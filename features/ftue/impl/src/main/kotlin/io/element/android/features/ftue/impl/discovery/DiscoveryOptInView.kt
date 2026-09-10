@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.unit.dp
+import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
 import io.element.android.features.ftue.impl.R
 import io.element.android.libraries.architecture.AsyncAction
@@ -24,10 +26,12 @@ import io.element.android.libraries.designsystem.atomic.molecules.IconTitleSubti
 import io.element.android.libraries.designsystem.atomic.pages.HeaderFooterPage
 import io.element.android.libraries.designsystem.background.OnboardingBackground
 import io.element.android.libraries.designsystem.components.BigIcon
+import io.element.android.libraries.designsystem.components.dialogs.ErrorDialog
 import io.element.android.libraries.designsystem.preview.ElementPreview
 import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.OutlinedButton
+import io.element.android.libraries.designsystem.theme.components.Text
 
 @Composable
 fun DiscoveryOptInView(
@@ -43,6 +47,13 @@ fun DiscoveryOptInView(
         header = { DiscoveryOptInHeader(modifier = Modifier.padding(top = 60.dp, bottom = 28.dp)) },
         footer = { DiscoveryOptInFooter(state = state, isLoading = isLoading) },
     )
+    val submitAction = state.submitAction
+    if (submitAction is AsyncAction.Failure) {
+        ErrorDialog(
+            content = stringResource(R.string.screen_discovery_opt_in_error, submitAction.error.message.orEmpty()),
+            onSubmit = { state.eventSink(DiscoveryOptInEvents.ClearError) },
+        )
+    }
 }
 
 @Composable
@@ -63,18 +74,38 @@ private fun DiscoveryOptInFooter(
     isLoading: Boolean,
 ) {
     ButtonColumnMolecule {
-        Button(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(R.string.screen_discovery_opt_in_discoverable_action),
-            enabled = !isLoading,
-            onClick = { state.eventSink(DiscoveryOptInEvents.Choose(discoverable = true)) },
-        )
-        OutlinedButton(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(R.string.screen_discovery_opt_in_hidden_action),
-            enabled = !isLoading,
-            onClick = { state.eventSink(DiscoveryOptInEvents.Choose(discoverable = false)) },
-        )
+        if (state.isHideAvailable) {
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.screen_discovery_opt_in_discoverable_action),
+                enabled = !isLoading,
+                onClick = { state.eventSink(DiscoveryOptInEvents.Choose(discoverable = true)) },
+            )
+            OutlinedButton(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.screen_discovery_opt_in_hidden_action),
+                enabled = !isLoading,
+                onClick = { state.eventSink(DiscoveryOptInEvents.Choose(discoverable = false)) },
+            )
+        } else {
+            // This build cannot stop advertising, so say so instead of offering a
+            // "stay hidden" that would silently do nothing.
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                text = stringResource(R.string.screen_discovery_opt_in_unavailable_notice),
+                style = ElementTheme.typography.fontBodyMdRegular,
+                color = ElementTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(R.string.screen_discovery_opt_in_continue_action),
+                enabled = !isLoading,
+                onClick = { state.eventSink(DiscoveryOptInEvents.Choose(discoverable = true)) },
+            )
+        }
     }
 }
 
