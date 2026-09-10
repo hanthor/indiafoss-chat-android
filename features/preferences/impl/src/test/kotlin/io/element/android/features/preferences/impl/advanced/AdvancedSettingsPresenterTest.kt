@@ -10,6 +10,7 @@ package io.element.android.features.preferences.impl.advanced
 
 import app.cash.molecule.RecompositionMode
 import app.cash.molecule.moleculeFlow
+import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.compound.theme.Theme
@@ -424,8 +425,7 @@ class AdvancedSettingsPresenterTest {
                 assertThat(setDiscoverableAction).isEqualTo(AsyncAction.Uninitialized)
                 eventSink(AdvancedSettingsEvents.SetDiscoverable(false))
             }
-            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Loading)
-            with(awaitItem()) {
+            with(awaitSettled()) {
                 assertThat(setDiscoverableAction).isEqualTo(AsyncAction.Success(Unit))
                 assertThat(isDiscoverable).isFalse()
             }
@@ -449,8 +449,7 @@ class AdvancedSettingsPresenterTest {
         }.test {
             skipItems(1)
             awaitItem().eventSink(AdvancedSettingsEvents.SetDiscoverable(false))
-            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Loading)
-            with(awaitItem()) {
+            with(awaitSettled()) {
                 val error = (setDiscoverableAction as AsyncAction.Failure).error
                 assertThat(error).isInstanceOf(DiscoverabilityNotAppliedException::class.java)
                 assertThat(error).hasMessageThat().isEqualTo("Neutrino is not running")
@@ -479,14 +478,24 @@ class AdvancedSettingsPresenterTest {
                 // Even if something sends the event, hiding is refused and never recorded.
                 eventSink(AdvancedSettingsEvents.SetDiscoverable(false))
             }
-            assertThat(awaitItem().setDiscoverableAction).isEqualTo(AsyncAction.Loading)
-            with(awaitItem()) {
+            with(awaitSettled()) {
                 val error = (setDiscoverableAction as AsyncAction.Failure).error as DiscoverabilityNotAppliedException
                 assertThat(error.result).isEqualTo(DiscoverableResult.Unavailable)
                 assertThat(isDiscoverable).isTrue()
             }
             assertThat(sessionPreferencesStore.isDiscoverable().first()).isTrue()
         }
+    }
+
+    // The fake service and in-memory store complete without suspending, so the
+    // Loading emission may be collapsed into the terminal state (and the store's
+    // own emission may or may not coincide with it).
+    private suspend fun ReceiveTurbine<AdvancedSettingsState>.awaitSettled(): AdvancedSettingsState {
+        var state = awaitItem()
+        while (state.setDiscoverableAction is AsyncAction.Loading) {
+            state = awaitItem()
+        }
+        return state
     }
 
     private fun CoroutineScope.createAdvancedSettingsPresenter(
