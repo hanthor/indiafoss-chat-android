@@ -17,12 +17,6 @@ plugins {
 
 android {
     namespace = "io.element.android.services.neutrino.impl"
-
-    buildTypes {
-        getByName("release") {
-            consumerProguardFiles("consumer-rules.pro")
-        }
-    }
 }
 
 setupDependencyInjection()
@@ -30,15 +24,23 @@ setupDependencyInjection()
 // The Neutrino bindings used to come from io.element.neutrino:bindings on GitHub
 // Packages, which returns 401 for anonymous requests even though the source is
 // public — every contributor and CI run needed a personal access token with
-// read:packages for element-hq (issue #3). We consume the same .aar the
-// IndiaFOSS Companion project already builds from source and publishes
-// anonymously for the identical reason (see its neutrino-bindings.yml): a
-// local file dependency needs no repository credentials at all. This build is
-// also compiled against hanthor/neutrino, our fork with the E2EE and CORS
-// patches, rather than plain upstream — see version.json in that repo for the
-// exact pinned rev.
+// read:packages for element-hq (issue #3). We consume the .aar the IndiaFOSS
+// Companion project builds from source and publishes anonymously for the
+// identical reason (its neutrino-bindings.yml): a local file dependency needs
+// no repository credentials at all.
+//
+// Provenance of the pinned release (neutrino-bindings-<neutrinoVersion> in
+// hanthor/indiafoss-companion): the Kotlin/uniffi bindings and the BLE mesh
+// transport are built from hanthor/neutrino-iroh at tag neutrino-kit-15117e9
+// (commit 15117e9, PR #15 — adds the top-level set_discoverable(bool) FFI that
+// DefaultNeutrinoService calls), against the homeserver crates from
+// hanthor/neutrino@2d85348, our fork carrying the E2EE and CORS patches. Neither
+// is upstream's artifact. The version string encodes both revs: <upstream
+// neutrino-iroh version>-e2ee.<neutrino rev>-ble.<neutrino-iroh rev>. Bumping
+// the pin means changing the catalog entry and this checksum together — the
+// download task refuses an .aar whose SHA-256 differs.
 val neutrinoVersion = libs.versions.neutrino.get()
-val neutrinoSha256 = "527528d3e8b392a22368debc7fc4a5ddd98da730b3e073866363ea9680b149bc"
+val neutrinoSha256 = "26cf81315af5d9f06ee0c6a12d15578570f1a218e3191aa8406b9cd83d4fc3af"
 val neutrinoAarName = "neutrino-bindings-$neutrinoVersion.aar"
 val neutrinoLibsDir = layout.projectDirectory.dir("libs")
 val neutrinoAar = neutrinoLibsDir.file(neutrinoAarName)

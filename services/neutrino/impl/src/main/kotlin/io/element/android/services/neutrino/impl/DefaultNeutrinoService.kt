@@ -58,9 +58,12 @@ class DefaultNeutrinoService(
 ) : NeutrinoService {
     var handle: NeutrinoHandle? = null
 
-    // The FFI's set_discoverable, resolved at runtime because the pinned .aar may
-    // not carry it (see ReflectiveDiscoverableBinding). Replaceable for tests.
-    internal var discoverableBinding: DiscoverableBinding = ReflectiveDiscoverableBinding()
+    // The FFI's top-level set_discoverable(bool) (hanthor/neutrino-iroh@15117e9,
+    // in the neutrino_ble uniffi namespace), called directly now that the pinned
+    // .aar carries it — see build.gradle.kts for the pin. A function reference
+    // rather than an inline call only so tests can substitute it: the real one
+    // loads the native library on first use, which a JVM unit test cannot do.
+    internal var setDiscoverableNative: (Boolean) -> Unit = { io.element.neutrino.ble.setDiscoverable(it) }
 
     // Held so its NetworkCallback is not garbage-collected. Registered once, on
     // first successful start; lives for the app-singleton's process lifetime.
@@ -222,18 +225,16 @@ class DefaultNeutrinoService(
 
     override fun isCapturing(): Boolean = handle?.isCapturing() == true
 
-    override fun isDiscoverabilityControlAvailable(): Boolean = discoverableBinding.isAvailable
+    // The binding is compiled in (the build would not link without it), so this
+    // implementation never answers DiscoverableResult.Unavailable.
+    override fun isDiscoverabilityControlAvailable(): Boolean = true
 
     override suspend fun setDiscoverable(discoverable: Boolean): DiscoverableResult {
-        if (!discoverableBinding.isAvailable) {
-            Timber.w("setDiscoverable($discoverable) ignored: set_discoverable is not in this build's Neutrino bindings")
-            return DiscoverableResult.Unavailable
-        }
         if (handle == null) {
             return DiscoverableResult.Failed("Neutrino is not running")
         }
         return try {
-            withContext(Dispatchers.IO) { discoverableBinding.setDiscoverable(discoverable) }
+            withContext(Dispatchers.IO) { setDiscoverableNative(discoverable) }
             Timber.i("Neutrino discoverable set to $discoverable")
             DiscoverableResult.Applied
         } catch (t: Throwable) {
@@ -243,12 +244,8 @@ class DefaultNeutrinoService(
     }
 
     private fun applyStartupHide() {
-        if (!discoverableBinding.isAvailable) {
-            Timber.w("Saved preference is 'hidden' but set_discoverable is not in this build's Neutrino bindings; the node will advertise")
-            return
-        }
         try {
-            discoverableBinding.setDiscoverable(false)
+            setDiscoverableNative(false)
             Timber.i("Neutrino asked to stay hidden from BLE discovery before start")
         } catch (t: Throwable) {
             Timber.e(t, "Could not apply the saved 'hidden' preference before start; the node will advertise")

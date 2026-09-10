@@ -22,6 +22,8 @@ class FakeNeutrinoService(
     private val stopCaptureResult: String? = "Download/$A_CAPTURE_NAME",
     // Whether this "build" carries the set_discoverable binding. When false,
     // setDiscoverable answers Unavailable regardless of setDiscoverableResult.
+    // The real service always answers true with the current bindings pin; the
+    // knob exists so presenters' "not available in this build" path stays tested.
     private val discoverabilityControlAvailable: Boolean = true,
     private val setDiscoverableResult: (Boolean) -> DiscoverableResult = { DiscoverableResult.Applied },
 ) : NeutrinoService {

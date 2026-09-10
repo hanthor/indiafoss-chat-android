@@ -18,8 +18,8 @@ interface NeutrinoService {
      * When `false` the node is asked to hide from BLE discovery before it comes
      * up, so a restart does not re-advertise a user who chose to stay hidden.
      * Whether that request can be honoured depends on
-     * [isDiscoverabilityControlAvailable]; when it cannot, the node advertises
-     * as normal and a warning is logged.
+     * [isDiscoverabilityControlAvailable]; when it cannot, or the FFI call
+     * fails, the node advertises as normal and a warning is logged.
      */
     fun start(discoverable: Boolean = true)
 
@@ -89,7 +89,9 @@ interface NeutrinoService {
      * Whether the Neutrino bindings in this build expose the `set_discoverable`
      * entry point at all. When `false`, [setDiscoverable] always returns
      * [DiscoverableResult.Unavailable] and the UI must say so rather than offer a
-     * hide toggle that does nothing.
+     * hide toggle that does nothing. The pinned bindings carry the entry point,
+     * so the production implementation answers `true`; the `false` path is kept
+     * for a future pin without it and for test fakes.
      */
     fun isDiscoverabilityControlAvailable(): Boolean
 

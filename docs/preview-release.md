@@ -23,3 +23,7 @@ GitHub secrets: `NIGHTLY_KEYSTORE_BASE64`, `NIGHTLY_KEYSTORE_PASSWORD`. Reposito
 James (hanthor) owns the encrypted PKCS12 and password recovery copy in the maintainer's private signing directory. Keep a separate secure backup of both; never attach them to an issue or commit them. Restore the existing key when repairing CI. A replacement key cannot update an installed app in place unless an appropriate signing-key migration has been established.
 
 CI signature checks are not a physical upgrade test. Retain two increasing-code APKs for the two-phone, in-place upgrade and account/key recovery rehearsal in #49. Public preview availability does not close those acceptance issues.
+
+## Known limitations to disclose
+
+- **Nearby-discovery hiding is unverified on hardware.** The bindings pin (`neutrino-bindings-0.8.2-e2ee.2d85348-ble.15117e9`) carries the `set_discoverable` FFI and the app calls it directly, so the first-run "Stay hidden" choice and the Advanced-settings toggle no longer show "not available in this build". Whether BLE advertising actually stops, stays stopped across a restart, and what that does to existing conversations' reachability has not been exercised on two physical devices (#47). Until it has, preview notes must not claim that hiding works — say that the control is wired but unverified.
