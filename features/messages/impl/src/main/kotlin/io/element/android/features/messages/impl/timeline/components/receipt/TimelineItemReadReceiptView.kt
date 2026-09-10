@@ -35,6 +35,7 @@ import androidx.compose.ui.zIndex
 import io.element.android.appconfig.TimelineConfig
 import io.element.android.compound.theme.ElementTheme
 import io.element.android.compound.tokens.generated.CompoundIcons
+import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.timeline.model.ReadReceiptData
 import io.element.android.libraries.designsystem.components.avatar.Avatar
 import io.element.android.libraries.designsystem.components.avatar.AvatarSize
@@ -45,6 +46,7 @@ import io.element.android.libraries.designsystem.preview.PreviewsDayNight
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Text
 import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSendState
+import io.element.android.libraries.outbox.api.OutboxState
 import io.element.android.libraries.testtags.TestTags
 import io.element.android.libraries.ui.strings.CommonPlurals
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -75,6 +77,12 @@ fun TimelineItemReadReceiptView(
                 )
             }
         }
+    } else if (state.outboxState != null) {
+        OutboxStateIndicator(
+            outboxState = state.outboxState,
+            isLastOutgoingMessage = state.isLastOutgoingMessage,
+            modifier = modifier,
+        )
     } else {
         when (state.sendState) {
             is LocalEventSendState.Sending -> {
@@ -104,6 +112,66 @@ fun TimelineItemReadReceiptView(
                 }
             }
         }
+    }
+}
+
+/**
+ * Truthful mapping of the outbox state:
+ * - queued / locally accepted: still sending;
+ * - accepted by the server: one tick, worded as server acceptance (not delivery);
+ * - delivered / read: a solid tick, only ever reached with a recipient receipt;
+ * - uncertain / failed / cancelled: nothing here, the timestamp row carries the "delivery unknown" mark and the failure.
+ */
+@Composable
+private fun OutboxStateIndicator(
+    outboxState: OutboxState,
+    isLastOutgoingMessage: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    when (outboxState) {
+        OutboxState.Queued,
+        OutboxState.LocallyAccepted -> ReadReceiptsRow(modifier) {
+            Icon(
+                modifier = Modifier.padding(2.dp),
+                imageVector = CompoundIcons.Circle(),
+                contentDescription = stringResource(id = CommonStrings.common_sending),
+                tint = ElementTheme.colors.iconSecondary
+            )
+        }
+        is OutboxState.ServerAccepted -> if (isLastOutgoingMessage) {
+            ReadReceiptsRow(modifier) {
+                Icon(
+                    modifier = Modifier.padding(2.dp),
+                    imageVector = CompoundIcons.CheckCircle(),
+                    contentDescription = stringResource(id = R.string.common_delivery_accepted_by_server),
+                    tint = ElementTheme.colors.iconSecondary
+                )
+            }
+        }
+        is OutboxState.Delivered -> if (isLastOutgoingMessage) {
+            ReadReceiptsRow(modifier) {
+                Icon(
+                    modifier = Modifier.padding(2.dp),
+                    imageVector = CompoundIcons.CheckCircleSolid(),
+                    contentDescription = stringResource(id = R.string.common_delivery_delivered),
+                    tint = ElementTheme.colors.iconSecondary
+                )
+            }
+        }
+        is OutboxState.Read -> if (isLastOutgoingMessage) {
+            ReadReceiptsRow(modifier) {
+                Icon(
+                    modifier = Modifier.padding(2.dp),
+                    imageVector = CompoundIcons.CheckCircleSolid(),
+                    contentDescription = stringResource(id = R.string.common_delivery_read),
+                    tint = ElementTheme.colors.iconAccentPrimary
+                )
+            }
+        }
+        // Uncertain and failed are carried by the timestamp row (with the retry affordance), like failures today.
+        OutboxState.Uncertain,
+        is OutboxState.Failed,
+        OutboxState.Cancelled -> Unit
     }
 }
 
@@ -206,6 +274,18 @@ private fun computeReceiptDescription(receipts: ImmutableList<ReadReceiptData>):
 @Composable
 internal fun TimelineItemReadReceiptViewPreview(
     @PreviewParameter(ReadReceiptViewStateProvider::class) state: ReadReceiptViewState,
+) = ElementPreview {
+    TimelineItemReadReceiptView(
+        state = state,
+        renderReadReceipts = true,
+        onReadReceiptsClick = {},
+    )
+}
+
+@PreviewsDayNight
+@Composable
+internal fun TimelineItemReadReceiptViewOutboxPreview(
+    @PreviewParameter(ReadReceiptViewStateOutboxProvider::class) state: ReadReceiptViewState,
 ) = ElementPreview {
     TimelineItemReadReceiptView(
         state = state,

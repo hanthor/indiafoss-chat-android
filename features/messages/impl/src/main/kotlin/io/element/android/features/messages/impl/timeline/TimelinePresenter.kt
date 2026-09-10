@@ -25,6 +25,7 @@ import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import io.element.android.features.location.api.live.ActiveLiveLocationShareManager
 import io.element.android.features.messages.impl.MessagesNavigator
+import io.element.android.features.messages.impl.R
 import io.element.android.features.messages.impl.UserEventPermissions
 import io.element.android.features.messages.impl.crypto.sendfailure.resolve.ResolveVerifiedUserSendFailureEvent
 import io.element.android.features.messages.impl.crypto.sendfailure.resolve.ResolveVerifiedUserSendFailureState
@@ -42,6 +43,8 @@ import io.element.android.features.poll.api.actions.SendPollResponseAction
 import io.element.android.features.roomcall.api.RoomCallState
 import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.coroutine.CoroutineDispatchers
+import io.element.android.libraries.designsystem.utils.snackbar.SnackbarDispatcher
+import io.element.android.libraries.designsystem.utils.snackbar.SnackbarMessage
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
 import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
@@ -54,18 +57,24 @@ import io.element.android.libraries.matrix.api.room.roomMembers
 import io.element.android.libraries.matrix.api.timeline.ReceiptType
 import io.element.android.libraries.matrix.api.timeline.Timeline
 import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemEventOrigin
+import io.element.android.libraries.outbox.api.Outbox
+import io.element.android.libraries.outbox.api.OutboxRetryResult
+import io.element.android.libraries.outbox.api.OutboxRoomTracker
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
+import io.element.android.libraries.ui.strings.CommonStrings
 import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.DisplayFirstTimelineItems
 import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.NotificationToMessage
 import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction.OpenRoom
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analytics.api.finishLongRunningTransaction
 import io.element.android.services.analyticsproviders.api.AnalyticsUserData
+import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -95,6 +104,10 @@ class TimelinePresenter(
     private val featureFlagService: FeatureFlagService,
     private val analyticsService: AnalyticsService,
     private val liveLocationShareManager: ActiveLiveLocationShareManager,
+    private val outbox: Outbox,
+    private val outboxRoomTracker: OutboxRoomTracker,
+    private val systemClock: SystemClock,
+    private val snackbarDispatcher: SnackbarDispatcher,
 ) : Presenter<TimelineState> {
     private val tag = "TimelinePresenter"
 
@@ -227,6 +240,9 @@ class TimelinePresenter(
                 is TimelineEvent.ComputeVerifiedUserSendFailure -> {
                     resolveVerifiedUserSendFailureState.eventSink(ResolveVerifiedUserSendFailureEvent.ComputeForMessage(event.event))
                 }
+                is TimelineEvent.RetryUncertainSend -> sessionCoroutineScope.launch {
+                    retryUncertainSend(event.event)
+                }
                 is TimelineEvent.NavigateToPredecessorOrSuccessorRoom -> {
                     // Navigate to the predecessor or successor room
                     val serverNames = calculateServerNamesForRoom(room)
@@ -242,7 +258,28 @@ class TimelinePresenter(
         }
 
         LaunchedEffect(Unit) {
-            timelineItemsFactory.timelineItems
+            // Follow the SDK send queue for this room, and reconcile the durable outbox against what the
+            // live timeline shows instead of resending anything.
+            outboxRoomTracker.track(room)
+            if (timelineMode is Timeline.Mode.Live) {
+                combine(timelineController.timelineItems(), timelineController.isLive()) { items, live -> items.takeIf { live } }
+                    .filterNotNull()
+                    .onEach { items ->
+                        outbox.reconcile(
+                            sessionId = room.sessionId,
+                            roomId = room.roomId,
+                            observations = items.toOutboxObservations(room.sessionId),
+                            nowMillis = systemClock.epochMillis(),
+                        )
+                    }
+                    .launchIn(this)
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            combine(timelineItemsFactory.timelineItems, outbox.observe(room.sessionId, room.roomId)) { items, records ->
+                items.withOutboxSummaries(records)
+            }
                 .onEach { newTimelineItems ->
                     timelineItemIndexer.process(newTimelineItems)
                     timelineItems = newTimelineItems
@@ -444,6 +481,18 @@ class TimelinePresenter(
             }
         }
         return null
+    }
+
+    private suspend fun retryUncertainSend(event: TimelineItem.Event) {
+        val summary = event.outbox ?: return
+        when (outbox.retry(summary.id, event.sendHandleProvider())) {
+            OutboxRetryResult.Retried -> Unit
+            // The route forgot the send: only an explicit continuation (step 2 of #48) may send again.
+            OutboxRetryResult.NoRouteHandle -> snackbarDispatcher.post(SnackbarMessage(R.string.screen_room_outbox_retry_not_possible))
+            is OutboxRetryResult.RouteRefused,
+            OutboxRetryResult.NotRetryable,
+            OutboxRetryResult.NotFound -> snackbarDispatcher.post(SnackbarMessage(CommonStrings.error_unknown))
+        }
     }
 }
 

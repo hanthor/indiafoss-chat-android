@@ -1,0 +1,49 @@
+-- One row per logical send. Message bodies are never stored here: the SDK send queue owns them.
+CREATE TABLE OutboxEntry (
+    id TEXT NOT NULL PRIMARY KEY,
+    sessionId TEXT NOT NULL,
+    roomId TEXT NOT NULL,
+    contentKind TEXT NOT NULL,
+    mediaReference TEXT,
+    createdAt INTEGER NOT NULL,
+    updatedAt INTEGER NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    -- One of the OutboxState kinds, see OutboxStateMapper.
+    state TEXT NOT NULL,
+    eventId TEXT,
+    -- Recipient for Delivered, reader for Read.
+    counterpartId TEXT,
+    failureReason TEXT,
+    failureRetryable INTEGER
+);
+
+CREATE INDEX OutboxEntry_room ON OutboxEntry(sessionId, roomId);
+
+-- One idempotency key per route attempted for an entry.
+CREATE TABLE OutboxRouteTransaction (
+    outboxId TEXT NOT NULL,
+    route TEXT NOT NULL,
+    transactionId TEXT NOT NULL,
+    PRIMARY KEY (outboxId, route)
+);
+
+insertEntry:
+INSERT INTO OutboxEntry VALUES ?;
+
+updateEntry:
+REPLACE INTO OutboxEntry VALUES ?;
+
+selectById:
+SELECT * FROM OutboxEntry WHERE id = ?;
+
+selectByRoom:
+SELECT * FROM OutboxEntry WHERE sessionId = ? AND roomId = ? ORDER BY createdAt ASC;
+
+selectUnsettled:
+SELECT * FROM OutboxEntry WHERE sessionId = ? AND state IN ('QUEUED', 'LOCALLY_ACCEPTED', 'UNCERTAIN') ORDER BY createdAt ASC;
+
+upsertTransaction:
+REPLACE INTO OutboxRouteTransaction VALUES ?;
+
+selectTransactions:
+SELECT * FROM OutboxRouteTransaction WHERE outboxId = ?;

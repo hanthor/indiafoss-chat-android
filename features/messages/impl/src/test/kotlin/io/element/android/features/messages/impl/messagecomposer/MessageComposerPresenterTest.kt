@@ -84,6 +84,10 @@ import io.element.android.libraries.mediaupload.impl.DefaultMediaSender
 import io.element.android.libraries.mediaupload.test.FakeMediaOptimizationConfigProvider
 import io.element.android.libraries.mediaupload.test.FakeMediaPreProcessor
 import io.element.android.libraries.mediaviewer.test.FakeLocalMediaFactory
+import io.element.android.libraries.outbox.api.Outbox
+import io.element.android.libraries.outbox.api.OutboxContentKind
+import io.element.android.libraries.outbox.api.OutboxContentRef
+import io.element.android.libraries.outbox.test.FakeOutbox
 import io.element.android.libraries.permissions.api.PermissionsPresenter
 import io.element.android.libraries.permissions.test.FakePermissionsPresenter
 import io.element.android.libraries.permissions.test.FakePermissionsPresenterFactory
@@ -408,6 +412,39 @@ class MessageComposerPresenterTest {
                     messageType = Composer.MessageType.Text,
                 )
             )
+        }
+    }
+
+    @Test
+    fun `present - sending a message records the intent in the durable outbox before the SDK is asked`() = runTest {
+        val outbox = FakeOutbox()
+        val presenter = createPresenter(
+            room = FakeJoinedRoom(
+                liveTimeline = FakeTimeline().apply {
+                    sendMessageLambda = { _, _, _, _, _ ->
+                        assertThat(outbox.sent).containsExactly(OutboxContentRef(OutboxContentKind.TEXT))
+                        Result.success(Unit)
+                    }
+                },
+                typingNoticeResult = { Result.success(Unit) }
+            ),
+            slashCommandService = FakeSlashCommandService(
+                parseResult = { _, _, _ -> SlashCommand.NotACommand }
+            ),
+            outbox = outbox,
+        )
+        moleculeFlow(RecompositionMode.Immediate) {
+            val state = presenter.present()
+            remember(state, state.textEditorState.messageHtml()) { state }
+        }.test {
+            val initialState = awaitFirstItem()
+            initialState.textEditorState.setHtml(A_MESSAGE)
+            val withMessageState = awaitItem()
+            withMessageState.eventSink.invoke(MessageComposerEvent.SendMessage)
+            val messageSentState = awaitItem()
+            assertThat(messageSentState.textEditorState.messageHtml()).isEqualTo("")
+            waitForPredicate { outbox.sent.size == 1 }
+            assertThat(outbox.sent).containsExactly(OutboxContentRef(OutboxContentKind.TEXT))
         }
     }
 
@@ -1536,6 +1573,7 @@ class MessageComposerPresenterTest {
         mediaOptimizationConfigProvider: FakeMediaOptimizationConfigProvider = FakeMediaOptimizationConfigProvider(),
         isInThread: Boolean = false,
         slashCommandService: SlashCommandService = FakeSlashCommandService(),
+        outbox: Outbox = FakeOutbox(),
     ) = MessageComposerPresenter(
         navigator = navigator,
         sessionCoroutineScope = this,
@@ -1574,6 +1612,7 @@ class MessageComposerPresenterTest {
         mediaOptimizationConfigProvider = mediaOptimizationConfigProvider,
         notificationConversationService = notificationConversationService,
         slashCommandService = slashCommandService,
+        outbox = outbox,
     ).apply {
         isTesting = true
         showTextFormatting = isRichTextEditorEnabled

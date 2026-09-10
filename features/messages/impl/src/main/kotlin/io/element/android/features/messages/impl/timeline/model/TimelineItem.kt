@@ -36,6 +36,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemD
 import io.element.android.libraries.matrix.api.timeline.item.event.TimelineItemEventOrigin
 import io.element.android.libraries.matrix.api.timeline.item.event.getDisambiguatedDisplayName
 import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetails
+import io.element.android.libraries.outbox.api.OutboxSummary
 import kotlinx.collections.immutable.ImmutableList
 
 @Immutable
@@ -103,6 +104,8 @@ sealed interface TimelineItem {
         val forwarder: UserId?,
         /** If [forwarder] is set, the profile of the forwarding user, if it was cached at the time the `EventTimelineItem` was created. */
         val forwarderProfile: ProfileDetails?,
+        /** The durable outbox record of this event when it is one of our own sends, else null. */
+        val outbox: OutboxSummary? = null,
     ) : TimelineItem {
         val showSenderInformation = groupPosition.isNew() && !isMine
 

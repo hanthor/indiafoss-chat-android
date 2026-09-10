@@ -42,6 +42,7 @@ import io.element.android.libraries.matrix.api.timeline.item.event.LocalEventSen
 import io.element.android.libraries.matrix.api.timeline.item.event.MessageShield
 import io.element.android.libraries.matrix.ui.messages.reply.InReplyToDetails
 import io.element.android.libraries.matrix.ui.messages.reply.aProfileDetailsReady
+import io.element.android.libraries.outbox.api.OutboxSummary
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -156,6 +157,7 @@ internal fun aTimelineItemEvent(
     timelineItemReactions: TimelineItemReactions = aTimelineItemReactions(),
     readReceiptState: TimelineItemReadReceipts = aTimelineItemReadReceipts(),
     messageShield: MessageShield? = null,
+    outbox: OutboxSummary? = null,
 ): TimelineItem.Event {
     return TimelineItem.Event(
         id = UniqueId(UUID.randomUUID().toString()),
@@ -184,6 +186,7 @@ internal fun aTimelineItemEvent(
         sendHandleProvider = { null },
         forwarder = null,
         forwarderProfile = null,
+        outbox = outbox,
     )
 }
 

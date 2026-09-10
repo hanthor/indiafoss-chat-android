@@ -66,6 +66,9 @@ import io.element.android.libraries.mediapickers.api.PickerProvider
 import io.element.android.libraries.mediaupload.api.MediaOptimizationConfigProvider
 import io.element.android.libraries.mediaupload.api.MediaSenderFactory
 import io.element.android.libraries.mediaviewer.api.local.LocalMediaFactory
+import io.element.android.libraries.outbox.api.Outbox
+import io.element.android.libraries.outbox.api.OutboxContentKind
+import io.element.android.libraries.outbox.api.OutboxContentRef
 import io.element.android.libraries.permissions.api.PermissionsEvent
 import io.element.android.libraries.permissions.api.PermissionsPresenter
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
@@ -132,6 +135,7 @@ class MessageComposerPresenter(
     private val mediaOptimizationConfigProvider: MediaOptimizationConfigProvider,
     private val notificationConversationService: NotificationConversationService,
     private val slashCommandService: SlashCommandService,
+    private val outbox: Outbox,
 ) : Presenter<MessageComposerState> {
     @AssistedFactory
     interface Factory {
@@ -523,11 +527,14 @@ class MessageComposerPresenter(
         when (capturedMode) {
             is MessageComposerMode.Attachment,
             is MessageComposerMode.Normal -> timelineController.invokeOnCurrentTimeline {
-                sendMessage(
-                    body = message.markdown,
-                    htmlBody = message.html,
-                    intentionalMentions = message.intentionalMentions
-                )
+                // The intent is persisted before the SDK is asked to send, so it survives process death.
+                outbox.send(room.sessionId, room.roomId, OutboxContentRef(OutboxContentKind.TEXT)) {
+                    sendMessage(
+                        body = message.markdown,
+                        htmlBody = message.html,
+                        intentionalMentions = message.intentionalMentions
+                    )
+                }
             }
             is MessageComposerMode.Edit -> {
                 timelineController.invokeOnCurrentTimeline {
@@ -553,12 +560,12 @@ class MessageComposerPresenter(
             }
             is MessageComposerMode.Reply -> {
                 timelineController.invokeOnCurrentTimeline {
-                    with(capturedMode) {
+                    outbox.send(room.sessionId, room.roomId, OutboxContentRef(OutboxContentKind.REPLY)) {
                         replyMessage(
                             body = message.markdown,
                             htmlBody = message.html,
                             intentionalMentions = message.intentionalMentions,
-                            repliedToEventId = eventId,
+                            repliedToEventId = capturedMode.eventId,
                         )
                     }
                 }
