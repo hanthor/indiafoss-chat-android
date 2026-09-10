@@ -10,8 +10,8 @@ package io.element.android.x.conference
 import android.app.Application
 import androidx.core.net.toUri
 import com.google.common.truth.Truth.assertThat
-import io.element.android.x.conference.ConferenceLinkDispatch.CompanionRoute
 import io.element.android.x.conference.ConferenceLinkDispatch.Communication
+import io.element.android.x.conference.ConferenceLinkDispatch.CompanionRoute
 import io.element.android.x.conference.ConferenceLinkDispatch.ExternalWeb
 import io.element.android.x.conference.ConferenceLinkDispatch.IndiafossHandoff
 import io.element.android.x.conference.ConferenceLinkDispatch.InternalConference
