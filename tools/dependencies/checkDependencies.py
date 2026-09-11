@@ -13,8 +13,7 @@ import subprocess
 def getProjectDependencies():
     print("=> Computing dependencies...")
     command = subprocess.run(
-        ["./gradlew :app:dependencies"],
-        shell=True,
+        ["./gradlew", ":app:dependencies"],
         capture_output=True,
         text=True,
     )
