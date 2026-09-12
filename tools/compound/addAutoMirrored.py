@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
+from pathlib import Path
+
 files = [
     "ic_compound_arrow_left.xml",
     "ic_compound_arrow_right.xml",
@@ -109,22 +111,42 @@ files = [
 ]
 
 
+def process_drawable(xml_path: Path) -> bool:
+    """Safely insert android:autoMirrored="true" into vector drawable XML if absent."""
+    if not xml_path.exists():
+        return False
+
+    content = xml_path.read_text(encoding="utf-8")
+    if 'android:autoMirrored="true"' in content:
+        return False
+
+    lines = content.splitlines(keepends=True)
+    new_lines = []
+    inserted = False
+    for line in lines:
+        new_lines.append(line)
+        if not inserted and ("<vector" in line or 'xmlns:android=' in line):
+            indent = "    "
+            new_lines.append(f'{indent}android:autoMirrored="true"\n')
+            inserted = True
+
+    if inserted:
+        xml_path.write_text("".join(new_lines), encoding="utf-8")
+        return True
+    return False
+
+
 def main():
-    for file in files:
-        # Open file for read
-        with open("./libraries/compound/src/main/res/drawable/" + file, 'r') as f:
-            data = f.read().split("\n")
-        # Open file to write
-        with open("./libraries/compound/src/main/res/drawable/" + file, 'w') as f:
-            # Write new data
-            # write the 3 first lines in data
-            for i in range(3):
-                f.write(data[i] + "\n")
-            f.write("    android:autoMirrored=\"true\"\n")
-            # write the rest of the data
-            for i in range(3, len(data) - 1):
-                f.write(data[i] + "\n")
-    print("Added autoMirrored to " + str(len(files)) + " files.")
+    repo_root = Path(__file__).resolve().parents[2]
+    drawable_dir = repo_root / "libraries" / "compound" / "src" / "main" / "res" / "drawable"
+    
+    modified_count = 0
+    for filename in files:
+        target_path = drawable_dir / filename
+        if process_drawable(target_path):
+            modified_count += 1
+
+    print(f"Processed autoMirrored across {len(files)} target files ({modified_count} modified).")
 
 
 if __name__ == "__main__":
