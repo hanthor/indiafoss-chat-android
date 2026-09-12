@@ -6,18 +6,20 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
-import os
+import filecmp
+from pathlib import Path
 
 
-def compare(file1, file2):
-    __doc__ = "Compare two files, return True if different, False if identical."
-    # Compare file size
-    file1_stats = os.stat(file1)
-    file2_stats = os.stat(file2)
-    if file1_stats.st_size != file2_stats.st_size:
+def compare(file1: str | Path, file2: str | Path) -> bool:
+    """Compare two files, return True if different, False if identical."""
+    p1 = Path(file1)
+    p2 = Path(file2)
+
+    if not p1.exists() or not p2.exists():
         return True
-    # Compare file content
-    with open(file1, "rb") as f1, open(file2, "rb") as f2:
-        content1 = f1.read()
-        content2 = f2.read()
-        return content1 != content2
+
+    if p1.stat().st_size != p2.stat().st_size:
+        return True
+
+    return not filecmp.cmp(p1, p2, shallow=False)
+
