@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
+import io.element.android.features.invite.api.KnownContactsStore
 import io.element.android.features.startchat.StartChatNavigator
 import io.element.android.features.startchat.api.StartDMAction
 import io.element.android.libraries.architecture.AsyncAction
@@ -40,6 +41,7 @@ class ScanQrPresenter(
     @Assisted private val navigator: StartChatNavigator,
     private val permalinkParser: PermalinkParser,
     private val startDMAction: StartDMAction,
+    private val knownContactsStore: KnownContactsStore,
     permissionsPresenterFactory: PermissionsPresenter.Factory,
 ) : Presenter<ScanQrState> {
     @AssistedFactory
@@ -85,6 +87,8 @@ class ScanQrPresenter(
                 return
             }
             coroutineScope.launch {
+                // A scanned card is a person met on purpose: their invites are chats, not requests.
+                knownContactsStore.markKnown(userId)
                 startDMAction.execute(
                     matrixUser = MatrixUser(userId = userId),
                     createIfDmDoesNotExist = true,

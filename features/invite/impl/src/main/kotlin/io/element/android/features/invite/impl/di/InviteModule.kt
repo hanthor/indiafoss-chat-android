@@ -12,8 +12,10 @@ import dev.zacsweers.metro.BindingContainer
 import dev.zacsweers.metro.Binds
 import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
+import io.element.android.features.invite.api.KnownContactsStore
 import io.element.android.features.invite.api.SeenInvitesStore
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteState
+import io.element.android.features.invite.impl.KnownContactsStoreFactory
 import io.element.android.features.invite.impl.SeenInvitesStoreFactory
 import io.element.android.features.invite.impl.acceptdecline.AcceptDeclineInvitePresenter
 import io.element.android.libraries.architecture.Presenter
@@ -32,6 +34,17 @@ interface InviteModule {
             factory: SeenInvitesStoreFactory,
             matrixClient: MatrixClient,
         ): SeenInvitesStore {
+            return factory.getOrCreate(
+                matrixClient.sessionId,
+                matrixClient.sessionCoroutineScope,
+            )
+        }
+
+        @Provides
+        fun providesKnownContactsStore(
+            factory: KnownContactsStoreFactory,
+            matrixClient: MatrixClient,
+        ): KnownContactsStore {
             return factory.getOrCreate(
                 matrixClient.sessionId,
                 matrixClient.sessionCoroutineScope,

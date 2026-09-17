@@ -23,6 +23,7 @@ sealed interface RoomListEvent {
     data class DeclineInvite(val roomSummary: RoomListRoomSummary, val blockUser: Boolean) : RoomListEvent
     data class ShowDeclineInviteMenu(val roomSummary: RoomListRoomSummary) : RoomListEvent
     data object HideDeclineInviteMenu : RoomListEvent
+    data object ToggleRequests : RoomListEvent
 
     sealed interface ContextMenuEvent : RoomListEvent
     data object HideContextMenu : ContextMenuEvent

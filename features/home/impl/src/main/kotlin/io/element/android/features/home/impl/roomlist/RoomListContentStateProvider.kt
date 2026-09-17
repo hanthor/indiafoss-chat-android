@@ -40,6 +40,8 @@ internal fun aRoomsContentState(
     fullScreenIntentPermissionsState: FullScreenIntentPermissionsState = aFullScreenIntentPermissionsState(),
     batteryOptimizationState: BatteryOptimizationState = aBatteryOptimizationState(),
     seenRoomInvites: Set<RoomId> = emptySet(),
+    requests: ImmutableList<RoomListRoomSummary> = persistentListOf(),
+    showRequests: Boolean = false,
 ) = RoomListContentState.Rooms(
     securityBannerState = securityBannerState,
     showNewNotificationSoundBanner = showNewNotificationSoundBanner,
@@ -47,6 +49,8 @@ internal fun aRoomsContentState(
     batteryOptimizationState = batteryOptimizationState,
     summaries = summaries,
     seenRoomInvites = seenRoomInvites.toImmutableSet(),
+    requests = requests,
+    showRequests = showRequests,
 )
 
 internal fun aSkeletonContentState() = RoomListContentState.Skeleton(16)

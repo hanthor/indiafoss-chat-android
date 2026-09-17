@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="indiafoss_home_menu_conference">Open IndiaFOSS Companion</string>
+    <string name="indiafoss_home_requests_title">Requests (%1$d)</string>
+    <string name="indiafoss_home_requests_subtitle">From mesh users whose card you have not scanned. Scan someone\'s card, or accept once, and their invites become chats.</string>
+    <string name="indiafoss_home_requests_show">Show requests</string>
+    <string name="indiafoss_home_requests_hide">Hide requests</string>
 </resources>

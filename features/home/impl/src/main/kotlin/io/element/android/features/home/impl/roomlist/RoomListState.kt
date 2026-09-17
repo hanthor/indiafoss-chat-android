@@ -74,5 +74,8 @@ sealed interface RoomListContentState {
         val showNewNotificationSoundBanner: Boolean,
         val summaries: ImmutableList<RoomListRoomSummary>,
         val seenRoomInvites: ImmutableSet<RoomId>,
+        /** Invites from mesh users the session has not met: kept out of [summaries] until expanded. */
+        val requests: ImmutableList<RoomListRoomSummary>,
+        val showRequests: Boolean,
     ) : RoomListContentState
 }
