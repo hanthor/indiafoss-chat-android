@@ -105,7 +105,7 @@ class UserProfileNode(
             onStartCall = callback::startCall,
             openAvatarPreview = callback::navigateToAvatarPreview,
             onVerifyClick = callback::startVerifyUserFlow,
-            onSendCodeToCompanion = if (myMeshCodeData != null) ::onSendCodeToCompanion else null,
+            onSendCodeToCompanion = myMeshCodeData?.let { ::onSendCodeToCompanion },
             myMeshCodeData = myMeshCodeData,
         )
     }
