@@ -13,4 +13,7 @@
     <string name="screen_start_chat_scan_qr_grant_permission_action">"Allow camera access"</string>
     <string name="screen_start_chat_scan_qr_invalid">"That's not a valid contact code."</string>
     <string name="screen_start_chat_scan_qr_try_again">"Try again"</string>
+    <string name="screen_start_chat_scan_qr_recognized_caption">"A code is an address, not a person. Verify them in the chat before trusting it."</string>
+    <string name="screen_start_chat_scan_qr_start_chat">"Start chat"</string>
+    <string name="screen_start_chat_scan_qr_scan_again">"Scan again"</string>
 </resources>

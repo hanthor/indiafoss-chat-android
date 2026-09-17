@@ -11,6 +11,7 @@ sealed interface ScanQrEvents {
     data class QrCodeScanned(val code: ByteArray) : ScanQrEvents
     data object RequestCameraPermission : ScanQrEvents
     data object TryAgain : ScanQrEvents
+    data object StartChat : ScanQrEvents
     data object CancelStartDM : ScanQrEvents
     data object Dismiss : ScanQrEvents
 }
