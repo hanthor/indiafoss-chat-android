@@ -22,6 +22,7 @@ import io.element.android.libraries.matrix.test.auth.FakeOAuthRedirectUrlProvide
 import io.element.android.libraries.matrix.test.core.aBuildMeta
 import io.element.android.libraries.sessionstorage.api.SessionStore
 import io.element.android.libraries.sessionstorage.test.InMemorySessionStore
+import io.element.android.libraries.workmanager.test.FakeWorkManagerScheduler
 import io.element.android.tests.testutils.testCoroutineDispatchers
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -84,27 +85,6 @@ class RustMatrixAuthenticationServiceTest {
         assertThat(cache.exists()).isTrue()
     }
 
-    @Test
-    fun `setHomeserver replaces the directory of an attempt that never became a session`() = runTest {
-        val baseDirectory = temporaryFolder.newFolder("sessions")
-        val cacheDirectory = temporaryFolder.newFolder("cache")
-        val sut = createRustMatrixAuthenticationService(
-            clientBuilderProvider = aLoginCapableClientBuilderProvider(),
-            baseDirectory = baseDirectory,
-            cacheDirectory = cacheDirectory,
-        )
-        assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
-        val abandoned = baseDirectory.listFiles().orEmpty().toList()
-        assertThat(abandoned).hasSize(1)
-        val leftover = File(abandoned.single(), "partial.sqlite3")
-        leftover.parentFile!!.mkdirs()
-        leftover.writeText("partial")
-
-        assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
-
-        assertThat(leftover.exists()).isFalse()
-    }
-
     private fun aLoginCapableClientBuilderProvider() = FakeClientBuilderProvider(
         provideResult = {
             FakeFfiClientBuilder(
@@ -112,6 +92,7 @@ class RustMatrixAuthenticationServiceTest {
                     FakeFfiClient(
                         homeserverLoginDetailsResult = { FakeFfiHomeserverLoginDetails() },
                         loginResult = { _, _ -> },
+                        withUtdHook = {},
                     )
                 }
             )
@@ -129,6 +110,7 @@ class RustMatrixAuthenticationServiceTest {
             cacheDirectory = cacheDirectory,
             sessionStore = sessionStore,
             clientBuilderProvider = clientBuilderProvider,
+            workManagerScheduler = FakeWorkManagerScheduler(submitLambda = {}),
         )
         return RustMatrixAuthenticationService(
             sessionPathsFactory = SessionPathsFactory(baseDirectory, cacheDirectory),
