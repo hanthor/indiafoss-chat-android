@@ -14,4 +14,6 @@
     <string name="screen_user_profile_my_mesh_code_action">"My code"</string>
     <string name="screen_user_profile_my_mesh_code_title">"Your contact code"</string>
     <string name="screen_user_profile_my_mesh_code_caption">"Have someone nearby scan this to start a chat with you on the mesh."</string>
+    <string name="screen_user_profile_my_mesh_code_send_to_companion">"Add to my Companion card"</string>
+    <string name="screen_user_profile_my_mesh_code_send_to_companion_caption">"Puts this id on the contact card you share from the IndiaFOSS Companion, after you confirm there."</string>
 </resources>
