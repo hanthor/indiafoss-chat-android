@@ -15,19 +15,40 @@ TMP_DIR="${REPO_ROOT}/tmp"
 mkdir -p "${TMP_DIR}"
 
 searchForbiddenStringsScript="${TMP_DIR}/search_forbidden_strings.pl"
+EXPECTED_SHA256="1dc0e0e4c954c92d549ca0f4864591f848b58357c032fe157e5cd56c89d79c7c"
 
-if [[ -f ${searchForbiddenStringsScript} ]]; then
-  echo "${searchForbiddenStringsScript} already there"
-else
-  echo "Get the script"
-  wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl -O "${searchForbiddenStringsScript}"
-fi
+verify_checksum() {
+  local file="$1"
+  local actual_sha256
+  actual_sha256="$(sha256sum "$file" 2>/dev/null | awk '{print $1}')"
+  [[ "$actual_sha256" == "$EXPECTED_SHA256" ]]
+}
 
-if [[ -x ${searchForbiddenStringsScript} ]]; then
-  echo "${searchForbiddenStringsScript} is already executable"
+if [[ -f ${searchForbiddenStringsScript} ]] && verify_checksum "${searchForbiddenStringsScript}"; then
+  echo "${searchForbiddenStringsScript} already there and verified"
 else
-  echo "Make the script executable"
-  chmod u+x "${searchForbiddenStringsScript}"
+  echo "Downloading search_forbidden_strings.pl securely..."
+  tmp_download="${searchForbiddenStringsScript}.tmp.$$"
+  download_url="https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl"
+  
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$download_url" -o "$tmp_download"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$download_url" -O "$tmp_download"
+  else
+    echo "ERROR: Neither curl nor wget is available to download quality check dependencies." >&2
+    exit 1
+  fi
+
+  if verify_checksum "$tmp_download"; then
+    mv "$tmp_download" "${searchForbiddenStringsScript}"
+    chmod u+x "${searchForbiddenStringsScript}"
+    echo "Successfully verified search_forbidden_strings.pl checksum."
+  else
+    echo "ERROR: SHA256 checksum verification failed for search_forbidden_strings.pl" >&2
+    rm -f "$tmp_download"
+    exit 1
+  fi
 fi
 
 echo
@@ -37,7 +58,7 @@ echo "Search for forbidden patterns in Kotlin source files..."
 allKotlinDirs=$(find "${REPO_ROOT}" -type d | grep -v build | grep -v '\.git' | grep -v '\.gradle' | grep 'kotlin$' || true)
 
 if [[ -n "${allKotlinDirs}" ]]; then
-  "${searchForbiddenStringsScript}" "${REPO_ROOT}/tools/check/forbidden_strings_in_code.txt" "$allKotlinDirs"
+  "${searchForbiddenStringsScript}" "${REPO_ROOT}/tools/check/forbidden_strings_in_code.txt" ${allKotlinDirs}
 fi
 
 echo
@@ -47,7 +68,7 @@ echo "Search for forbidden patterns in XML resource files..."
 allResDirs=$(find "${REPO_ROOT}" -type d | grep -v build | grep -v '\.git' | grep -v '\.gradle' | grep '/res$' || true)
 
 if [[ -n "${allResDirs}" ]]; then
-  "${searchForbiddenStringsScript}" "${REPO_ROOT}/tools/check/forbidden_strings_in_xml.txt" "$allResDirs"
+  "${searchForbiddenStringsScript}" "${REPO_ROOT}/tools/check/forbidden_strings_in_xml.txt" ${allResDirs}
 fi
 
 echo "OK"
