@@ -25,10 +25,15 @@ import io.element.android.libraries.sessionstorage.test.InMemorySessionStore
 import io.element.android.tests.testutils.testCoroutineDispatchers
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import java.io.File
 
 class RustMatrixAuthenticationServiceTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     @Test
     fun `setHomeserver is successful`() = runTest {
         val sut = createRustMatrixAuthenticationService(
@@ -49,13 +54,77 @@ class RustMatrixAuthenticationServiceTest {
         assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
     }
 
+    @Test
+    fun `setHomeserver after a login keeps the stored session's directories`() = runTest {
+        val sessionStore = InMemorySessionStore(updateUserProfileResult = { _, _, _ -> })
+        val baseDirectory = temporaryFolder.newFolder("sessions")
+        val cacheDirectory = temporaryFolder.newFolder("cache")
+        val sut = createRustMatrixAuthenticationService(
+            sessionStore = sessionStore,
+            clientBuilderProvider = aLoginCapableClientBuilderProvider(),
+            baseDirectory = baseDirectory,
+            cacheDirectory = cacheDirectory,
+        )
+        assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
+        val sessionId = sut.login("alice", "password").getOrThrow()
+        val sessionData = sessionStore.getSession(sessionId.value)!!
+        // The SDK would have created these; stand in for it so deletion is observable.
+        val cryptoStore = File(sessionData.sessionPath, "matrix-sdk-crypto.sqlite3")
+        cryptoStore.parentFile!!.mkdirs()
+        cryptoStore.writeText("keys")
+        val cache = File(sessionData.cachePath, "state.sqlite3")
+        cache.parentFile!!.mkdirs()
+        cache.writeText("cache")
+
+        // A second attempt (adding an account, or the embedded-homeserver auto-login firing
+        // again) must rotate onto a fresh directory, not over the live one.
+        assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
+
+        assertThat(cryptoStore.exists()).isTrue()
+        assertThat(cache.exists()).isTrue()
+    }
+
+    @Test
+    fun `setHomeserver replaces the directory of an attempt that never became a session`() = runTest {
+        val baseDirectory = temporaryFolder.newFolder("sessions")
+        val cacheDirectory = temporaryFolder.newFolder("cache")
+        val sut = createRustMatrixAuthenticationService(
+            clientBuilderProvider = aLoginCapableClientBuilderProvider(),
+            baseDirectory = baseDirectory,
+            cacheDirectory = cacheDirectory,
+        )
+        assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
+        val abandoned = baseDirectory.listFiles().orEmpty().toList()
+        assertThat(abandoned).hasSize(1)
+        val leftover = File(abandoned.single(), "partial.sqlite3")
+        leftover.parentFile!!.mkdirs()
+        leftover.writeText("partial")
+
+        assertThat(sut.setHomeserver("matrix.org").isSuccess).isTrue()
+
+        assertThat(leftover.exists()).isFalse()
+    }
+
+    private fun aLoginCapableClientBuilderProvider() = FakeClientBuilderProvider(
+        provideResult = {
+            FakeFfiClientBuilder(
+                buildResult = {
+                    FakeFfiClient(
+                        homeserverLoginDetailsResult = { FakeFfiHomeserverLoginDetails() },
+                        loginResult = { _, _ -> },
+                    )
+                }
+            )
+        }
+    )
+
     private fun TestScope.createRustMatrixAuthenticationService(
         sessionStore: SessionStore = InMemorySessionStore(),
         clientBuilderProvider: ClientBuilderProvider = FakeClientBuilderProvider(),
         enterpriseService: EnterpriseService = FakeEnterpriseService(),
+        baseDirectory: File = File("/base"),
+        cacheDirectory: File = File("/cache"),
     ): RustMatrixAuthenticationService {
-        val baseDirectory = File("/base")
-        val cacheDirectory = File("/cache")
         val rustMatrixClientFactory = createRustMatrixClientFactory(
             cacheDirectory = cacheDirectory,
             sessionStore = sessionStore,

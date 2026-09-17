@@ -78,6 +78,7 @@ import io.element.android.services.analytics.api.watchers.AnalyticsColdStartWatc
 import io.element.android.services.appnavstate.api.ROOM_OPENED_FROM_NOTIFICATION
 import io.element.android.services.neutrino.api.NeutrinoService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -278,7 +279,14 @@ class RootFlowNode(
      * reachable — there is no fallback. A failure is only logged for diagnosis.
      */
     private fun autoLoginToEmbeddedNeutrino() {
-        lifecycleScope.launch {
+        // One attempt at a time: `setHomeserver()` rotates the authentication service's
+        // pending session directory, so a second emission arriving mid-login would delete
+        // the directory the first attempt is about to store as a session.
+        if (autoLoginJob?.isActive == true) {
+            Timber.d("Neutrino auto-login already in progress")
+            return
+        }
+        autoLoginJob = lifecycleScope.launch {
             authenticationService.setHomeserver(NEUTRINO_HOMESERVER_URL)
                 .mapCatchingExceptions {
                     authenticationService.login(NEUTRINO_LOCALPART, NEUTRINO_AUTO_LOGIN_PASSWORD).getOrThrow()
@@ -288,6 +296,8 @@ class RootFlowNode(
                 }
         }
     }
+
+    private var autoLoginJob: Job? = null
 
     private fun switchToSignedOutFlow(sessionId: SessionId) {
         backstack.safeRoot(NavTarget.SignedOutFlow(sessionId))
