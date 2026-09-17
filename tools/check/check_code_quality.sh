@@ -6,51 +6,48 @@
 # SPDX-License-Identifier: AGPL-3.0-only OR LicenseRef-Element-Commercial.
 # Please see LICENSE files in the repository root for full details.
 
-#######################################################################################################################
-# Search forbidden pattern
-#######################################################################################################################
+set -euo pipefail
 
-searchForbiddenStringsScript=./tmp/search_forbidden_strings.pl
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
+
+TMP_DIR="${REPO_ROOT}/tmp"
+mkdir -p "${TMP_DIR}"
+
+searchForbiddenStringsScript="${TMP_DIR}/search_forbidden_strings.pl"
 
 if [[ -f ${searchForbiddenStringsScript} ]]; then
   echo "${searchForbiddenStringsScript} already there"
 else
-  mkdir tmp
   echo "Get the script"
-  wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl -O ${searchForbiddenStringsScript}
+  wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl -O "${searchForbiddenStringsScript}"
 fi
 
 if [[ -x ${searchForbiddenStringsScript} ]]; then
   echo "${searchForbiddenStringsScript} is already executable"
 else
   echo "Make the script executable"
-  chmod u+x ${searchForbiddenStringsScript}
+  chmod u+x "${searchForbiddenStringsScript}"
 fi
 
 echo
 echo "Search for forbidden patterns in Kotlin source files..."
 
 # list all Kotlin folders of the project.
-allKotlinDirs=$(find . -type d |grep -v build |grep -v \.git |grep -v \.gradle |grep kotlin$)
+allKotlinDirs=$(find "${REPO_ROOT}" -type d | grep -v build | grep -v '\.git' | grep -v '\.gradle' | grep 'kotlin$' || true)
 
-${searchForbiddenStringsScript} ./tools/check/forbidden_strings_in_code.txt "$allKotlinDirs"
-
-resultForbiddenStringInCode=$?
+if [[ -n "${allKotlinDirs}" ]]; then
+  "${searchForbiddenStringsScript}" "${REPO_ROOT}/tools/check/forbidden_strings_in_code.txt" "$allKotlinDirs"
+fi
 
 echo
 echo "Search for forbidden patterns in XML resource files..."
 
 # list all res folders of the project.
-allResDirs=$(find . -type d |grep -v build |grep -v \.git |grep -v \.gradle |grep /res$)
+allResDirs=$(find "${REPO_ROOT}" -type d | grep -v build | grep -v '\.git' | grep -v '\.gradle' | grep '/res$' || true)
 
-${searchForbiddenStringsScript} ./tools/check/forbidden_strings_in_xml.txt "$allResDirs"
-
-resultForbiddenStringInXml=$?
-
-if [[ ${resultForbiddenStringInCode} -eq 0 ]] \
-   && [[ ${resultForbiddenStringInXml} -eq 0 ]]; then
-   echo "OK"
-else
-   echo "❌ ERROR, please check the logs above."
-   exit 1
+if [[ -n "${allResDirs}" ]]; then
+  "${searchForbiddenStringsScript}" "${REPO_ROOT}/tools/check/forbidden_strings_in_xml.txt" "$allResDirs"
 fi
+
+echo "OK"
