@@ -8,9 +8,12 @@
 
 package io.element.android.features.userprofile.impl.root
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import com.bumble.appyx.core.lifecycle.subscribe
 import com.bumble.appyx.core.modality.BuildContext
 import com.bumble.appyx.core.node.Node
@@ -19,6 +22,7 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedInject
 import im.vector.app.features.analytics.plan.MobileScreen
 import io.element.android.annotations.ContributesNode
+import io.element.android.features.userprofile.shared.CompanionCardHandback
 import io.element.android.features.userprofile.shared.UserProfileNodeHelper
 import io.element.android.features.userprofile.shared.UserProfileView
 import io.element.android.libraries.architecture.NodeInputs
@@ -29,6 +33,7 @@ import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.core.isMeshUser
 import io.element.android.libraries.matrix.api.permalink.PermalinkBuilder
 import io.element.android.services.analytics.api.AnalyticsService
+import timber.log.Timber
 
 @ContributesNode(SessionScope::class)
 @AssistedInject
@@ -77,6 +82,18 @@ class UserProfileNode(
             callback.navigateToRoom(roomId)
         }
 
+        // Hands this account's id to the Companion card; ConferenceActivity answers the link,
+        // so a missing companion never leaves the user on a "no app" error.
+        fun onSendCodeToCompanion() {
+            val intent = Intent(Intent.ACTION_VIEW, CompanionCardHandback.uriFor(inputs.userId).toUri())
+                .setPackage(context.packageName)
+            try {
+                context.startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                Timber.e(e, "No activity for the Companion hand-back route")
+            }
+        }
+
         val state = presenter.present()
 
         UserProfileView(
@@ -88,6 +105,7 @@ class UserProfileNode(
             onStartCall = callback::startCall,
             openAvatarPreview = callback::navigateToAvatarPreview,
             onVerifyClick = callback::startVerifyUserFlow,
+            onSendCodeToCompanion = myMeshCodeData?.let { ::onSendCodeToCompanion },
             myMeshCodeData = myMeshCodeData,
         )
     }
