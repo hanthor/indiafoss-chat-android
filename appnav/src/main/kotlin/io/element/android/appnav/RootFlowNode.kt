@@ -78,6 +78,7 @@ import io.element.android.services.analytics.api.watchers.AnalyticsColdStartWatc
 import io.element.android.services.appnavstate.api.ROOM_OPENED_FROM_NOTIFICATION
 import io.element.android.services.neutrino.api.NeutrinoService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -134,11 +135,12 @@ class RootFlowNode(
     // hand (a hard gate); otherwise the CS listener never binds and startup hangs.
     private val neutrinoPrerequisitesMet = MutableStateFlow(false)
 
-    // The embedded server's fatal startup error, surfaced on the splash as a dialog.
-    // Set when the homeserver fails to come up (e.g. its persisted server_name no
-    // longer matches the identity it is booting under); we then stay on the splash
-    // rather than routing into an app with no reachable homeserver behind it.
-    private val neutrinoStartupError = MutableStateFlow<String?>(null)
+    // A fatal startup error, surfaced on the splash as a dialog. Set when the
+    // embedded homeserver fails to come up (e.g. its persisted server_name no
+    // longer matches the identity it is booting under), or when the stored
+    // session cannot be restored; we then stay on the splash rather than routing
+    // into an app with no reachable homeserver or no usable account behind it.
+    private val startupError = MutableStateFlow<String?>(null)
 
     override fun onBuilt() {
         analyticsColdStartWatcher.start()
@@ -160,7 +162,7 @@ class RootFlowNode(
             // an auto-login against a homeserver that never came up.
             neutrinoService.lastError()?.let { error ->
                 Timber.e("Neutrino failed to start: $error")
-                neutrinoStartupError.value = error
+                startupError.value = error
                 return@launch
             }
             if (buildContext.savedStateMap != null) {
@@ -194,7 +196,7 @@ class RootFlowNode(
                             } else {
                                 tryToRestoreLatestSession(
                                     onSuccess = { sessionId -> switchToLoggedInFlow(sessionId, navState.cacheIndex) },
-                                    onFailure = { switchToNotLoggedInFlow(null) }
+                                    onFailure = { error -> stayOnSplashWithUnrestorableSession(sessionId, error) }
                                 )
                             }
                         } else {
@@ -278,7 +280,14 @@ class RootFlowNode(
      * reachable — there is no fallback. A failure is only logged for diagnosis.
      */
     private fun autoLoginToEmbeddedNeutrino() {
-        lifecycleScope.launch {
+        // One attempt at a time: `setHomeserver()` rotates the authentication service's
+        // pending session directory, so a second emission arriving mid-login would delete
+        // the directory the first attempt is about to store as a session.
+        if (autoLoginJob?.isActive == true) {
+            Timber.d("Neutrino auto-login already in progress")
+            return
+        }
+        autoLoginJob = lifecycleScope.launch {
             authenticationService.setHomeserver(NEUTRINO_HOMESERVER_URL)
                 .mapCatchingExceptions {
                     authenticationService.login(NEUTRINO_LOCALPART, NEUTRINO_AUTO_LOGIN_PASSWORD).getOrThrow()
@@ -289,13 +298,31 @@ class RootFlowNode(
         }
     }
 
+    private var autoLoginJob: Job? = null
+
+    /**
+     * The stored session could not be restored. The credential row is still there, so
+     * the nav state keeps reporting logged in and the embedded-homeserver auto-login
+     * never runs; routing to the not-logged-in flow used to leave the attendee on a
+     * screen that could never recover. Say what happened instead. Nothing is deleted:
+     * a session that fails to start is a state to report, not a reason to erase.
+     */
+    private fun stayOnSplashWithUnrestorableSession(sessionId: SessionId, error: Throwable?) {
+        matrixSessionCache.removeAll()
+        backstack.safeRoot(NavTarget.SplashScreen)
+        val reason = error?.message ?: "unknown error"
+        startupError.value =
+            "Your account $sessionId could not be restored: $reason. Its data has been kept. " +
+                "Restart the app to try again; if it keeps failing, send a bug report."
+    }
+
     private fun switchToSignedOutFlow(sessionId: SessionId) {
         backstack.safeRoot(NavTarget.SignedOutFlow(sessionId))
     }
 
     private suspend fun restoreSessionIfNeeded(
         sessionId: SessionId,
-        onFailure: () -> Unit,
+        onFailure: (Throwable?) -> Unit,
         onSuccess: (SessionId) -> Unit,
     ) {
         matrixSessionCache.getOrRestore(sessionId).onSuccess {
@@ -303,16 +330,16 @@ class RootFlowNode(
             onSuccess(sessionId)
         }.onFailure {
             Timber.e(it, "Failed to restore session $sessionId")
-            onFailure()
+            onFailure(it)
         }
     }
 
     private suspend fun tryToRestoreLatestSession(
-        onSuccess: (SessionId) -> Unit, onFailure: () -> Unit
+        onSuccess: (SessionId) -> Unit, onFailure: (Throwable?) -> Unit
     ) {
         val latestSessionId = sessionStore.getLatestSessionId()
         if (latestSessionId == null) {
-            onFailure()
+            onFailure(null)
             return
         }
         restoreSessionIfNeeded(latestSessionId, onFailure, onSuccess)
@@ -423,7 +450,7 @@ class RootFlowNode(
                     ),
                 )
             }
-            NavTarget.SplashScreen -> loadingNode(buildContext, neutrinoStartupError) {
+            NavTarget.SplashScreen -> loadingNode(buildContext, startupError) {
                 neutrinoPrerequisitesMet.value = true
             }
             NavTarget.BugReport -> {

@@ -76,7 +76,10 @@ class RustMatrixAuthenticationService(
     // stored in the SessionData.
     private val pendingPassphrase = getDatabasePassphrase()
 
-    // Need to keep a copy of the current session path to eventually delete it.
+    // The directory of a login attempt that has not produced a stored session yet, so
+    // the next attempt can delete it. Once a session is stored, the directory belongs to
+    // that session and must be forgotten here: an unrelated `setHomeserver()` call
+    // rotating over it would delete a live crypto store.
     // Ideally it would be possible to get the sessionPath from the Client to avoid doing this.
     private var sessionPaths: SessionPaths? = null
     private var currentClient: Client? = null
@@ -165,6 +168,8 @@ class RustMatrixAuthenticationService(
                 val matrixClient = rustMatrixClientFactory.create(client)
                 newMatrixClientObservers.forEach { it.invoke(matrixClient) }
                 sessionStore.addSession(sessionData)
+                // The directory now belongs to the stored session; never rotate over it.
+                sessionPaths = null
 
                 // Clean up the strong reference held here since it's no longer necessary
                 currentClient = null
@@ -245,6 +250,8 @@ class RustMatrixAuthenticationService(
                 // And once it's ready we share it and save the actual session data
                 newMatrixClientObservers.forEach { it.invoke(matrixClient) }
                 sessionStore.addSession(sessionData)
+                // The directory now belongs to the stored session; never rotate over it.
+                sessionPaths = null
 
                 // Clean up the strong reference held here since it's no longer necessary
                 currentClient = null
@@ -332,6 +339,8 @@ class RustMatrixAuthenticationService(
 
                 newMatrixClientObservers.forEach { it.invoke(matrixClient) }
                 sessionStore.addSession(sessionData)
+                // The directory now belongs to the stored session; never rotate over it.
+                sessionPaths = null
 
                 // Clean up the strong reference held here since it's no longer necessary
                 currentClient = null
@@ -395,6 +404,8 @@ class RustMatrixAuthenticationService(
                 val matrixClient = rustMatrixClientFactory.create(client)
                 newMatrixClientObservers.forEach { it.invoke(matrixClient) }
                 sessionStore.addSession(sessionData)
+                // The directory now belongs to the stored session; never rotate over it.
+                sessionPaths = null
 
                 // Clean up the strong reference held here since it's no longer necessary
                 currentClient = null

@@ -49,6 +49,7 @@ class FakeFfiClient(
     private val withUtdHook: (UnableToDecryptDelegate) -> Unit = { lambdaError() },
     private val getProfileResult: (String) -> UserProfile = { UserProfile(userId = userId, displayName = null, avatarUrl = null) },
     private val homeserverLoginDetailsResult: () -> HomeserverLoginDetails = { lambdaError() },
+    private val loginResult: (username: String, password: String) -> Unit = { _, _ -> lambdaError() },
     private val getStoreSizesResult: () -> StoreSizes = { lambdaError() },
     private val createRoomResult: (CreateRoomParameters) -> String = { lambdaError() },
     private val homeserverCapabilities: HomeserverCapabilities = FakeFfiHomeserverCapabilities(),
@@ -93,6 +94,10 @@ class FakeFfiClient(
 
     override suspend fun homeserverLoginDetails(): HomeserverLoginDetails {
         return homeserverLoginDetailsResult()
+    }
+
+    override suspend fun login(username: String, password: String, initialDeviceName: String?, deviceId: String?) {
+        loginResult(username, password)
     }
 
     override suspend fun setMediaRetentionPolicy(policy: MediaRetentionPolicy) {}
