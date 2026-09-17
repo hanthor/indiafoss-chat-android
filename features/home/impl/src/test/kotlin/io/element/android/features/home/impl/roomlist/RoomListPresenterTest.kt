@@ -23,10 +23,12 @@ import io.element.android.features.home.impl.search.RoomListSearchState
 import io.element.android.features.home.impl.search.aRoomListSearchState
 import io.element.android.features.home.impl.spacefilters.SpaceFiltersState
 import io.element.android.features.home.impl.spacefilters.aDisabledSpaceFiltersState
+import io.element.android.features.invite.api.KnownContactsStore
 import io.element.android.features.invite.api.SeenInvitesStore
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteEvents
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteState
 import io.element.android.features.invite.api.acceptdecline.anAcceptDeclineInviteState
+import io.element.android.features.invite.test.InMemoryKnownContactsStore
 import io.element.android.features.invite.test.InMemorySeenInvitesStore
 import io.element.android.features.leaveroom.api.LeaveRoomEvent
 import io.element.android.features.leaveroom.api.LeaveRoomState
@@ -40,6 +42,7 @@ import io.element.android.libraries.fullscreenintent.api.aFullScreenIntentPermis
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.SessionId
+import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
 import io.element.android.libraries.matrix.api.room.CurrentUserMembership
 import io.element.android.libraries.matrix.api.room.RoomNotificationMode
@@ -494,6 +497,69 @@ class RoomListPresenterTest {
         }
     }
 
+    @Test
+    fun `present - an invite from an unknown mesh user is a request until the sender is known`() = runTest {
+        val meshSender = UserId("@n:" + "a".repeat(64))
+        val roomSummary = aRoomSummary(
+            currentUserMembership = CurrentUserMembership.INVITED,
+            inviter = aRoomMember(userId = meshSender),
+        )
+        val roomList = FakeDynamicRoomList(
+            summaries = MutableStateFlow(listOf(roomSummary)),
+            loadingState = MutableStateFlow(RoomList.LoadingState.Loaded(1))
+        )
+        val matrixClient = FakeMatrixClient(
+            roomListService = FakeRoomListService(createRoomListLambda = { roomList }),
+        )
+        val knownContactsStore = InMemoryKnownContactsStore()
+        val presenter = createRoomListPresenter(
+            client = matrixClient,
+            knownContactsStore = knownContactsStore,
+        )
+        presenter.test {
+            val gated = consumeItemsUntilPredicate {
+                it.contentState is RoomListContentState.Rooms && it.contentAsRooms().requests.isNotEmpty()
+            }.last()
+            assertThat(gated.contentAsRooms().summaries).isEmpty()
+            assertThat(gated.contentAsRooms().requests.single().id).isEqualTo(roomSummary.roomId.value)
+            assertThat(gated.contentAsRooms().showRequests).isFalse()
+
+            gated.eventSink(RoomListEvent.ToggleRequests)
+            assertThat(awaitItem().contentAsRooms().showRequests).isTrue()
+
+            // Accepting marks the sender known; the same invite then lists as a chat.
+            gated.eventSink(RoomListEvent.AcceptInvite(gated.contentAsRooms().requests.single()))
+            val known = consumeItemsUntilPredicate {
+                it.contentAsRooms().requests.isEmpty()
+            }.last()
+            assertThat(known.contentAsRooms().summaries.single().id).isEqualTo(roomSummary.roomId.value)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `present - an invite from an internet Matrix user is never a request`() = runTest {
+        val roomSummary = aRoomSummary(
+            currentUserMembership = CurrentUserMembership.INVITED,
+            inviter = aRoomMember(userId = UserId("@alice:server.org")),
+        )
+        val roomList = FakeDynamicRoomList(
+            summaries = MutableStateFlow(listOf(roomSummary)),
+            loadingState = MutableStateFlow(RoomList.LoadingState.Loaded(1))
+        )
+        val matrixClient = FakeMatrixClient(
+            roomListService = FakeRoomListService(createRoomListLambda = { roomList }),
+        )
+        val presenter = createRoomListPresenter(client = matrixClient)
+        presenter.test {
+            val state = consumeItemsUntilPredicate {
+                it.contentState is RoomListContentState.Rooms && it.contentAsRooms().summaries.isNotEmpty()
+            }.last()
+            assertThat(state.contentAsRooms().requests).isEmpty()
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `present - UpdateVisibleRange will cancel the previous subscription if called too soon`() = runTest {
@@ -620,6 +686,7 @@ class RoomListPresenterTest {
         notificationCleaner: NotificationCleaner = FakeNotificationCleaner(),
         appPreferencesStore: AppPreferencesStore = InMemoryAppPreferencesStore(),
         seenInvitesStore: SeenInvitesStore = InMemorySeenInvitesStore(),
+        knownContactsStore: KnownContactsStore = InMemoryKnownContactsStore(),
         announcementService: AnnouncementService = FakeAnnouncementService(),
     ) = RoomListPresenter(
         client = client,
@@ -647,6 +714,7 @@ class RoomListPresenterTest {
         notificationCleaner = notificationCleaner,
         appPreferencesStore = appPreferencesStore,
         seenInvitesStore = seenInvitesStore,
+        knownContactsStore = knownContactsStore,
         announcementService = announcementService,
         coldStartWatcher = FakeAnalyticsColdStartWatcher(),
     )

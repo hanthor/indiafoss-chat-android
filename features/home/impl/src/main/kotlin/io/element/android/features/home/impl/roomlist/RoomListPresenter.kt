@@ -31,11 +31,14 @@ import io.element.android.features.home.impl.datasource.RoomListDataSource
 import io.element.android.features.home.impl.filters.RoomListFilter.Rooms
 import io.element.android.features.home.impl.filters.RoomListFiltersState
 import io.element.android.features.home.impl.filters.into
+import io.element.android.features.home.impl.model.RoomListRoomSummary
+import io.element.android.features.home.impl.model.RoomSummaryDisplayType
 import io.element.android.features.home.impl.search.RoomListSearchEvent
 import io.element.android.features.home.impl.search.RoomListSearchState
 import io.element.android.features.home.impl.spacefilters.SpaceFiltersState
 import io.element.android.features.home.impl.spacefilters.into
 import io.element.android.features.home.impl.spacefilters.selectedFilter
+import io.element.android.features.invite.api.KnownContactsStore
 import io.element.android.features.invite.api.SeenInvitesStore
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteEvents.AcceptInvite
 import io.element.android.features.invite.api.acceptdecline.AcceptDeclineInviteEvents.DeclineInvite
@@ -47,6 +50,8 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.fullscreenintent.api.FullScreenIntentPermissionsState
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.isMeshUser
 import io.element.android.libraries.matrix.api.encryption.RecoveryState
 import io.element.android.libraries.matrix.api.roomlist.RoomList
 import io.element.android.libraries.matrix.api.roomlist.RoomListFilter
@@ -87,6 +92,7 @@ class RoomListPresenter(
     private val notificationCleaner: NotificationCleaner,
     private val appPreferencesStore: AppPreferencesStore,
     private val seenInvitesStore: SeenInvitesStore,
+    private val knownContactsStore: KnownContactsStore,
     private val announcementService: AnnouncementService,
     private val coldStartWatcher: AnalyticsColdStartWatcher,
     private val spaceFiltersPresenter: Presenter<SpaceFiltersState>,
@@ -107,6 +113,7 @@ class RoomListPresenter(
         }
 
         var securityBannerDismissed by rememberSaveable { mutableStateOf(false) }
+        var showRequests by rememberSaveable { mutableStateOf(false) }
         val showNewNotificationSoundBanner by remember {
             announcementService.announcementsToShowFlow().map { announcements ->
                 announcements.contains(Announcement.NewNotificationSound)
@@ -143,10 +150,15 @@ class RoomListPresenter(
                 is RoomListEvent.MarkAsRead -> coroutineScope.markAsRead(event.roomId)
                 is RoomListEvent.MarkAsUnread -> coroutineScope.markAsUnread(event.roomId)
                 is RoomListEvent.AcceptInvite -> {
+                    // Accepting is meeting on purpose: a mesh sender's next invite is a chat, not a request.
+                    event.roomSummary.inviteSender?.userId?.takeIf { it.isMeshUser }?.let { sender ->
+                        coroutineScope.launch { knownContactsStore.markKnown(sender) }
+                    }
                     acceptDeclineInviteState.eventSink(
                         AcceptInvite(event.roomSummary.toInviteData())
                     )
                 }
+                RoomListEvent.ToggleRequests -> showRequests = !showRequests
                 is RoomListEvent.DeclineInvite -> {
                     acceptDeclineInviteState.eventSink(
                         DeclineInvite(event.roomSummary.toInviteData(), blockUser = event.blockUser, shouldConfirm = false)
@@ -168,6 +180,7 @@ class RoomListPresenter(
         val contentState = roomListContentState(
             securityBannerDismissed,
             showNewNotificationSoundBanner,
+            showRequests,
         )
 
         val canReportRoom by produceState(false) { value = client.canReportRoom() }
@@ -229,6 +242,7 @@ class RoomListPresenter(
     private fun roomListContentState(
         securityBannerDismissed: Boolean,
         showNewNotificationSoundBanner: Boolean,
+        showRequests: Boolean,
     ): RoomListContentState {
         val roomSummaries by produceState(initialValue = AsyncData.Loading()) {
             roomListDataSource.roomSummariesFlow.collect { value = AsyncData.Success(it) }
@@ -245,6 +259,7 @@ class RoomListPresenter(
             }
         }
         val seenRoomInvites by remember { seenInvitesStore.seenRoomIds() }.collectAsState(emptySet())
+        val knownContacts by remember { knownContactsStore.knownUserIds() }.collectAsState(emptySet())
         val securityBannerState by rememberSecurityBannerState(securityBannerDismissed)
         return when {
             showEmpty -> RoomListContentState.Empty(
@@ -254,13 +269,16 @@ class RoomListPresenter(
             else -> {
                 coldStartWatcher.onRoomListVisible()
 
+                val (requests, summaries) = roomSummaries.dataOrNull().orEmpty().partition { it.isContactRequest(knownContacts) }
                 RoomListContentState.Rooms(
                     securityBannerState = securityBannerState,
                     showNewNotificationSoundBanner = showNewNotificationSoundBanner,
                     fullScreenIntentPermissionsState = fullScreenIntentPermissionsPresenter.present(),
                     batteryOptimizationState = batteryOptimizationPresenter.present(),
-                    summaries = roomSummaries.dataOrNull().orEmpty().toImmutableList(),
+                    summaries = summaries.toImmutableList(),
                     seenRoomInvites = seenRoomInvites.toImmutableSet(),
+                    requests = requests.toImmutableList(),
+                    showRequests = showRequests,
                 )
             }
         }
@@ -336,4 +354,15 @@ class RoomListPresenter(
             room.clearEventCacheStorage()
         }
     }
+}
+
+/**
+ * An invite from a mesh identity this session has not met. Mesh ids are
+ * visible to anyone nearby, so such an invite is a request to be let in,
+ * not a chat. Internet Matrix invites are left to the homeserver's own controls.
+ */
+private fun RoomListRoomSummary.isContactRequest(knownContacts: Set<UserId>): Boolean {
+    if (displayType != RoomSummaryDisplayType.INVITE) return false
+    val sender = inviteSender?.userId ?: return false
+    return sender.isMeshUser && sender !in knownContacts
 }

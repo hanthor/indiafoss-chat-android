@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,6 +54,7 @@ import io.element.android.libraries.designsystem.theme.components.Button
 import io.element.android.libraries.designsystem.theme.components.HorizontalDivider
 import io.element.android.libraries.designsystem.theme.components.IconSource
 import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.utils.OnVisibleRangeChangeEffect
 import io.element.android.libraries.ui.strings.CommonStrings
 import kotlinx.collections.immutable.ImmutableList
@@ -280,6 +282,68 @@ private fun RoomsViewList(
                 HorizontalDivider()
             }
         }
+        if (state.requests.isNotEmpty()) {
+            item(contentType = "requests-header") {
+                ContactRequestsHeader(
+                    count = state.requests.size,
+                    expanded = state.showRequests,
+                    onToggle = { eventSink(RoomListEvent.ToggleRequests) },
+                )
+            }
+            if (state.showRequests) {
+                itemsIndexed(
+                    items = state.requests,
+                    contentType = { _, room -> room.contentType() },
+                ) { index, room ->
+                    RoomSummaryRow(
+                        room = room,
+                        hideInviteAvatars = hideInvitesAvatars,
+                        isInviteSeen = state.seenRoomInvites.contains(room.roomId),
+                        onClick = onRoomClick,
+                        eventSink = eventSink,
+                    )
+                    if (index != state.requests.lastIndex) {
+                        HorizontalDivider()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Invites from mesh identities the session has not met, folded away so an
+ * open venue mesh cannot fill the list. Scanning someone's card, or accepting
+ * once, lets their next invite through as a chat.
+ */
+@Composable
+private fun ContactRequestsHeader(
+    count: Int,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.indiafoss_home_requests_title, count),
+            style = ElementTheme.typography.fontBodyLgMedium,
+            color = ElementTheme.colors.textPrimary,
+        )
+        Text(
+            text = stringResource(R.string.indiafoss_home_requests_subtitle),
+            style = ElementTheme.typography.fontBodySmRegular,
+            color = ElementTheme.colors.textSecondary,
+        )
+        TextButton(
+            text = stringResource(
+                if (expanded) R.string.indiafoss_home_requests_hide else R.string.indiafoss_home_requests_show,
+            ),
+            onClick = onToggle,
+        )
     }
 }
 
