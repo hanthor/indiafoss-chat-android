@@ -9,8 +9,9 @@
 
 import os
 import re
+import shutil
+import subprocess
 import sys
-import time
 
 from util import compare
 
@@ -25,7 +26,7 @@ def generateAllScreenshots(languages):
     # If languages is empty, generate all screenshots
     if len(languages) == 0:
         print("Generating all screenshots...")
-        os.system("./gradlew recordPaparazziDebug -PallLanguages")
+        subprocess.run(["./gradlew", "recordPaparazziDebug", "-PallLanguages"], check=True)
     else:
         tFile = "tests/uitests/src/test/kotlin/translations/TranslationsScreenshotTest.kt"
         print("Generating screenshots for languages: %s" % languages)
@@ -38,9 +39,9 @@ def generateAllScreenshots(languages):
             data = data.replace("@TestParameter(value = [\"de\"])", "@TestParameter(value = [\"%s\"])" % lang)
             with open(tFile, "w") as file:
                 file.write(data)
-            os.system("./gradlew recordPaparazziDebug -PallLanguagesNoEnglish")
+            subprocess.run(["./gradlew", "recordPaparazziDebug", "-PallLanguagesNoEnglish"], check=True)
             # Git reset the change on file TranslationsScreenshotTest.kt
-            os.system("git checkout HEAD -- %s" % tFile)
+            subprocess.run(["git", "checkout", "HEAD", "--", tFile], check=True)
 
 
 def detectLanguages():
@@ -77,7 +78,8 @@ def moveScreenshots(lang):
     __doc__ = "Move screenshots to the folder per language"
     targetFolder = "screenshots/" + lang
     print("Deleting existing screenshots for %s..." % lang)
-    os.system("rm -rf %s" % targetFolder)
+    if os.path.exists(targetFolder):
+        shutil.rmtree(targetFolder)
     print("Moving screenshots for %s to %s..." % (lang, targetFolder))
     files = os.listdir("tests/uitests/src/test/snapshots/images/")
     # Filter files by language

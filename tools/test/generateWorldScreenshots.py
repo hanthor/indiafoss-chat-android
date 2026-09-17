@@ -8,6 +8,7 @@
 #
 
 import os
+import subprocess
 
 def detectAllExistingTranslations():
     # Read all the folder in "libraries/ui-strings/src/main/res"
@@ -27,6 +28,6 @@ def main():
     languages = detectAllExistingTranslations()
     print ("Will record the screenshots for those languages: %s" % languages)
     # Run the python script "generateAllScreenshots.py" with the detected languages
-    os.system("./tools/test/generateAllScreenshots.py %s" % " ".join(languages))
+    subprocess.run(["./tools/test/generateAllScreenshots.py"] + languages, check=True)
 
 main()
