@@ -79,10 +79,11 @@ it cannot; none mutates the store.
   for an explicit attendee confirmation before a crypto store goes; that is a
   product change to the signed-out flow and belongs with the coordinator work
   under Chat #46, not with this fix.
-- **An unrestorable latest session is a dead end**: `RootFlowNode` routes to
-  the not-logged-in flow but the row stays, so `loggedInStateFlow` keeps
-  reporting logged in and the auto-login never retries. Nothing is deleted, so
-  it is safe, but it is stuck until the row is removed by hand. Owned by the
-  coordinator's explicit error state (X-03 step 1).
+- **An unrestorable latest session used to be a dead end**: `RootFlowNode`
+  routed to the not-logged-in flow but the row stayed, so `loggedInStateFlow`
+  kept reporting logged in and the auto-login never retried. It now stays on
+  the splash and says which account failed, why, that its data was kept, and
+  to restart. Still nothing is deleted; a labelled "start over" that removes
+  the row is coordinator work (X-03 step 1), not an error handler's.
 - No per-account coordinator, no second concurrent session, no provisioning
   flow. Steps 1, 2 and 4–9 of X-03 are untouched.
