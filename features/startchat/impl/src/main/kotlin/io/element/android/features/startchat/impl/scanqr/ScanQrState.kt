@@ -10,6 +10,7 @@ package io.element.android.features.startchat.impl.scanqr
 import androidx.compose.runtime.Immutable
 import io.element.android.libraries.architecture.AsyncAction
 import io.element.android.libraries.matrix.api.core.RoomId
+import io.element.android.libraries.matrix.api.core.UserId
 import io.element.android.libraries.permissions.api.PermissionsState
 
 data class ScanQrState(
@@ -24,4 +25,7 @@ data class ScanQrState(
 sealed interface ScanResult {
     data object Scanning : ScanResult
     data object NotRecognized : ScanResult
+
+    /** An address was read; nothing is contacted until the user confirms. */
+    data class Recognized(val userId: UserId) : ScanResult
 }

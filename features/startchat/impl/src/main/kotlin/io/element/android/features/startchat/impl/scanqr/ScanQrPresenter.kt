@@ -27,7 +27,7 @@ import io.element.android.libraries.architecture.Presenter
 import io.element.android.libraries.core.data.tryOrNull
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
-import io.element.android.libraries.matrix.api.core.parseMeshContactUserId
+import io.element.android.libraries.matrix.api.core.parseScannedContactUserId
 import io.element.android.libraries.matrix.api.core.toRoomIdOrAlias
 import io.element.android.libraries.matrix.api.permalink.PermalinkData
 import io.element.android.libraries.matrix.api.permalink.PermalinkParser
@@ -81,11 +81,14 @@ class ScanQrPresenter(
         fun onQrCodeScanned(code: ByteArray) {
             // The analyzer keeps firing; ignore anything that arrives while we are not scanning.
             if (!isScanning) return
-            val userId = resolveContact(code.decodeToString())
-            if (userId == null) {
-                scanResult = ScanResult.NotRecognized
-                return
-            }
+            // Preview first: a code is an address, and the person holding the phone decides.
+            scanResult = resolveContact(code.decodeToString())
+                ?.let { ScanResult.Recognized(it) }
+                ?: ScanResult.NotRecognized
+        }
+
+        fun startChat() {
+            val userId = (scanResult as? ScanResult.Recognized)?.userId ?: return
             coroutineScope.launch {
                 // A scanned card is a person met on purpose: their invites are chats, not requests.
                 knownContactsStore.markKnown(userId)
@@ -100,6 +103,7 @@ class ScanQrPresenter(
         fun handleEvent(event: ScanQrEvents) {
             when (event) {
                 is ScanQrEvents.QrCodeScanned -> onQrCodeScanned(event.code)
+                ScanQrEvents.StartChat -> startChat()
                 ScanQrEvents.RequestCameraPermission -> cameraPermissionState.eventSink(PermissionsEvent.RequestPermissions)
                 ScanQrEvents.TryAgain -> {
                     scanResult = ScanResult.Scanning
@@ -119,12 +123,13 @@ class ScanQrPresenter(
         )
     }
 
-    // Try the standard permalink first (matrix.to / matrix: URIs), then the mesh contact
-    // payloads it does not handle (a raw mesh MXID or the companion's mesh vCard line).
+    // Try the standard permalink first (matrix.to / matrix: URIs), then the contact
+    // payloads it does not handle: a raw MXID, the companion's vCard or friend card,
+    // and the chat handoff link.
     private fun resolveContact(raw: String): UserId? {
         val text = raw.trim()
         if (text.isEmpty()) return null
         val fromPermalink = (tryOrNull { permalinkParser.parse(text) } as? PermalinkData.UserLink)?.userId
-        return fromPermalink ?: parseMeshContactUserId(text)
+        return fromPermalink ?: parseScannedContactUserId(text)
     }
 }

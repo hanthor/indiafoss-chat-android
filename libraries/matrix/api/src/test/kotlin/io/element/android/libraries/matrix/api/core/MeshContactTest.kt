@@ -72,4 +72,44 @@ class MeshContactTest {
         assertThat(parseMeshContactUserId("")).isNull()
         assertThat(parseMeshContactUserId("https://example.org/@n:$node")).isNull()
     }
+
+    @Test
+    fun `a scanned friend card prefers the matrix id and falls back to the mesh node`() {
+        assertThat(parseScannedContactUserId("indiafoss://friend?v=1&matrix_id=%40alice%3Amatrix.org&neutrino_server_name=$node"))
+            .isEqualTo(UserId("@alice:matrix.org"))
+        assertThat(parseScannedContactUserId("indiafoss://friend?v=1&fn=Asha&neutrino_server_name=${node.uppercase()}"))
+            .isEqualTo(UserId("@n:$node"))
+    }
+
+    @Test
+    fun `a friend card of another version or without an identity is not a contact`() {
+        assertThat(parseScannedContactUserId("indiafoss://friend?v=2&matrix_id=%40alice%3Amatrix.org")).isNull()
+        assertThat(parseScannedContactUserId("indiafoss://friend?v=1&fn=Asha")).isNull()
+        assertThat(parseScannedContactUserId("indiafoss://friend?v=1&matrix_id=not-an-id")).isNull()
+    }
+
+    @Test
+    fun `a chat handoff link names its dm target`() {
+        assertThat(parseScannedContactUserId("indiafoss://chat?dm=%40bob%3Aexample.org")).isEqualTo(UserId("@bob:example.org"))
+        assertThat(parseScannedContactUserId("indiafoss://chat?join=%23room%3Aexample.org")).isNull()
+    }
+
+    @Test
+    fun `the companion vCard matrix line wins over its mesh line`() {
+        val vcard = buildString {
+            appendLine("BEGIN:VCARD")
+            appendLine("VERSION:3.0")
+            appendLine("FN:Asha")
+            appendLine("X-INDIAFOSS-MESH:$node")
+            appendLine("X-INDIAFOSS-MATRIX:@asha:example.org")
+            appendLine("END:VCARD")
+        }
+        assertThat(parseScannedContactUserId(vcard)).isEqualTo(UserId("@asha:example.org"))
+    }
+
+    @Test
+    fun `a raw internet mxid is a scannable contact too`() {
+        assertThat(parseScannedContactUserId("@alice:example.org")).isEqualTo(UserId("@alice:example.org"))
+        assertThat(parseScannedContactUserId("hello")).isNull()
+    }
 }

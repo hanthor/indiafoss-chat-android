@@ -60,3 +60,76 @@ private fun meshNodeIdFromVCardLine(line: String): String? {
     if (property !in MESH_VCARD_PROPERTIES) return null
     return line.substring(colon + 1).trim().lowercase().takeIf { MESH_HEX.matches(it) }
 }
+
+private const val FRIEND_PREFIX = "indiafoss://friend"
+private const val CHAT_PREFIX = "indiafoss://chat"
+private const val MATRIX_VCARD_PROPERTY = "x-indiafoss-matrix"
+
+/**
+ * A [UserId] from any contact payload the companion can show as a QR that
+ * [PermalinkParser] does not handle: a raw MXID, the companion's signed vCard
+ * (its `X-INDIAFOSS-MATRIX` line first, then the mesh line), the app-aware
+ * `indiafoss://friend?v=1&matrix_id=…|neutrino_server_name=…` card, or an
+ * `indiafoss://chat?dm=…` handoff. Nothing here is trusted: the result is an
+ * address to preview, never an identity.
+ */
+fun parseScannedContactUserId(raw: String): UserId? {
+    val text = raw.trim()
+    if (text.isEmpty()) return null
+    if (!text.contains('\n') && MatrixPatterns.isUserId(text)) return UserId(text)
+    val lower = text.lowercase()
+    if (lower.startsWith(FRIEND_PREFIX) || lower.startsWith(CHAT_PREFIX)) return indiafossLinkUserId(text)
+    return text.lineSequence().firstNotNullOfOrNull { matrixIdFromVCardLine(it) }
+        ?: parseMeshContactUserId(text)
+}
+
+private fun indiafossLinkUserId(link: String): UserId? {
+    val query = link.substringAfter('?', missingDelimiterValue = "")
+    if (query.isEmpty()) return null
+    val params = query.split('&').mapNotNull { pair ->
+        val key = pair.substringBefore('=')
+        val value = pair.substringAfter('=', missingDelimiterValue = "")
+        if (key.isEmpty()) null else key to percentDecode(value)
+    }.toMap()
+    val isFriend = link.lowercase().startsWith(FRIEND_PREFIX)
+    if (isFriend && params["v"] != "1") return null
+    val matrixId = if (isFriend) params["matrix_id"] else params["dm"]
+    matrixId?.takeIf { MatrixPatterns.isUserId(it) }?.let { return UserId(it) }
+    if (!isFriend) return null
+    return params["neutrino_server_name"]?.lowercase()?.takeIf { MESH_HEX.matches(it) }?.let { UserId("@n:$it") }
+}
+
+// Query-string decoding without exceptions: a stray '%' stays as it is, and the
+// id check afterwards rejects it. Only ASCII escapes matter for an MXID.
+private fun percentDecode(value: String): String {
+    val out = StringBuilder(value.length)
+    var i = 0
+    while (i < value.length) {
+        val c = value[i]
+        val hex = if (c == '%' && i + 2 < value.length) value.substring(i + 1, i + 3) else null
+        val code = hex?.toIntOrNull(16)
+        when {
+            code != null -> {
+                out.append(code.toChar())
+                i += 3
+            }
+            c == '+' -> {
+                out.append(' ')
+                i++
+            }
+            else -> {
+                out.append(c)
+                i++
+            }
+        }
+    }
+    return out.toString()
+}
+
+private fun matrixIdFromVCardLine(line: String): UserId? {
+    val colon = line.indexOf(':')
+    if (colon <= 0) return null
+    val property = line.substring(0, colon).substringBefore(';').trim().lowercase()
+    if (property != MATRIX_VCARD_PROPERTY) return null
+    return line.substring(colon + 1).trim().takeIf { MatrixPatterns.isUserId(it) }?.let { UserId(it) }
+}

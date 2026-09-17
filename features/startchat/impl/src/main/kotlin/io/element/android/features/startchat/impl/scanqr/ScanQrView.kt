@@ -36,7 +36,10 @@ import io.element.android.libraries.designsystem.theme.components.CircularProgre
 import io.element.android.libraries.designsystem.theme.components.Icon
 import io.element.android.libraries.designsystem.theme.components.Scaffold
 import io.element.android.libraries.designsystem.theme.components.Text
+import io.element.android.libraries.designsystem.theme.components.TextButton
 import io.element.android.libraries.designsystem.theme.components.TopAppBar
+import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.displayId
 import io.element.android.libraries.permissions.api.PermissionsView
 import io.element.android.libraries.qrcode.QrCodeCameraView
 import io.element.android.libraries.ui.strings.CommonStrings
@@ -125,7 +128,49 @@ private fun ScannerContent(
                     onTryAgain = { state.eventSink(ScanQrEvents.TryAgain) },
                 )
             }
+            state.scanResult is ScanResult.Recognized -> {
+                RecognizedOverlay(
+                    userId = state.scanResult.userId,
+                    onStartChat = { state.eventSink(ScanQrEvents.StartChat) },
+                    onScanAgain = { state.eventSink(ScanQrEvents.TryAgain) },
+                )
+            }
         }
+    }
+}
+
+/**
+ * The address read off the code, before anything is contacted. A code proves
+ * nothing about who holds the phone, so the caption says so and the person
+ * decides.
+ */
+@Composable
+private fun RecognizedOverlay(
+    userId: UserId,
+    onStartChat: () -> Unit,
+    onScanAgain: () -> Unit,
+) {
+    StatusOverlay {
+        Text(
+            text = userId.displayId,
+            textAlign = TextAlign.Center,
+            color = ElementTheme.colors.textPrimary,
+            style = ElementTheme.typography.fontBodyLgMedium,
+        )
+        Text(
+            text = stringResource(R.string.screen_start_chat_scan_qr_recognized_caption),
+            textAlign = TextAlign.Center,
+            color = ElementTheme.colors.textSecondary,
+            style = ElementTheme.typography.fontBodySmRegular,
+        )
+        Button(
+            text = stringResource(R.string.screen_start_chat_scan_qr_start_chat),
+            onClick = onStartChat,
+        )
+        TextButton(
+            text = stringResource(R.string.screen_start_chat_scan_qr_scan_again),
+            onClick = onScanAgain,
+        )
     }
 }
 
