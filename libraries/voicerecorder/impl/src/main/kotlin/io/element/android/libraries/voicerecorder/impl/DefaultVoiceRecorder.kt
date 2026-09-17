@@ -17,6 +17,7 @@ import io.element.android.libraries.core.coroutine.CoroutineDispatchers
 import io.element.android.libraries.core.coroutine.childScope
 import io.element.android.libraries.di.RoomScope
 import io.element.android.libraries.di.annotations.SessionCoroutineScope
+import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.voicerecorder.api.VoiceRecorder
 import io.element.android.libraries.voicerecorder.api.VoiceRecorderState
 import io.element.android.libraries.voicerecorder.impl.audio.Audio
@@ -38,7 +39,9 @@ import kotlinx.coroutines.yield
 import timber.log.Timber
 import java.io.File
 import java.util.UUID
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 @SingleIn(RoomScope::class)
@@ -52,9 +55,19 @@ class DefaultVoiceRecorder(
     private val config: AudioConfig,
     private val fileConfig: VoiceFileConfig,
     private val audioLevelCalculator: AudioLevelCalculator,
+    private val matrixClient: MatrixClient,
     @SessionCoroutineScope
     sessionCoroutineScope: CoroutineScope,
 ) : VoiceRecorder {
+    /**
+     * The longest note the server will accept: the app limit, or shorter when
+     * the homeserver's upload cap says so. A mesh node caps media at a few
+     * hundred KiB per hop, and a note that cannot be uploaded is worse than
+     * one that stops early. Resolved once per recording, in the background.
+     */
+    @Volatile
+    private var maxDuration: Duration = VoiceMessageConfig.maxVoiceMessageDuration
+
     private val voiceCoroutineScope by lazy {
         sessionCoroutineScope.childScope(dispatchers.io, "VoiceRecorder-${UUID.randomUUID()}")
     }
@@ -82,6 +95,13 @@ class DefaultVoiceRecorder(
 
         val audioRecorder = audioReaderFactory.create(config, dispatchers).also { audioReader = it }
 
+        maxDuration = VoiceMessageConfig.maxVoiceMessageDuration
+        voiceCoroutineScope.launch {
+            matrixClient.getMaxFileUploadSize().onSuccess { bytes ->
+                maxDuration = minOf(maxDuration, durationFor(bytes, config.bitRate))
+            }
+        }
+
         recordingJob = voiceCoroutineScope.launch {
             val startedAt = timeSource.markNow()
             audioRecorder.record { audio ->
@@ -89,7 +109,7 @@ class DefaultVoiceRecorder(
 
                 val elapsedTime = startedAt.elapsedNow()
 
-                if (elapsedTime > VoiceMessageConfig.maxVoiceMessageDuration) {
+                if (elapsedTime > maxDuration) {
                     Timber.w("Voice message time limit reached")
                     stopRecord(false)
                     return@record
@@ -164,4 +184,16 @@ class DefaultVoiceRecorder(
         outputFile = null
         _state.emit(VoiceRecorderState.Idle)
     }
+}
+
+/**
+ * Seconds of audio that fit in [maxUploadBytes] at [bitRate], keeping a tenth
+ * back for the Ogg container. Whole seconds, so the limit reads cleanly.
+ */
+internal fun durationFor(maxUploadBytes: Long, bitRate: Int): Duration {
+    val appLimit = VoiceMessageConfig.maxVoiceMessageDuration
+    if (maxUploadBytes <= 0 || bitRate <= 0) return appLimit
+    // Floating point: a homeserver with no real cap reports something near Long.MAX_VALUE.
+    val seconds = maxUploadBytes.toDouble() * 8 * 0.9 / bitRate
+    return if (seconds >= appLimit.inWholeSeconds) appLimit else seconds.toLong().seconds
 }

@@ -14,6 +14,8 @@ import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import io.element.android.appconfig.VoiceMessageConfig
 import io.element.android.libraries.core.mimetype.MimeTypes
+import io.element.android.libraries.matrix.api.MatrixClient
+import io.element.android.libraries.matrix.test.FakeMatrixClient
 import io.element.android.libraries.voicerecorder.api.VoiceRecorderState
 import io.element.android.libraries.voicerecorder.impl.audio.Audio
 import io.element.android.libraries.voicerecorder.impl.audio.AudioConfig
@@ -87,6 +89,55 @@ class DefaultVoiceRecorderTest {
     }
 
     @Test
+    fun `when the server caps uploads, it stops at the seconds that fit`() = runTest {
+        // A mesh node with the media patch: 256 KiB per hop. At 24 kbps, a tenth
+        // kept back for the container, that is 78 whole seconds.
+        val voiceRecorder = createDefaultVoiceRecorder(
+            matrixClient = FakeMatrixClient(getMaxUploadSizeResult = { Result.success(256L * 1024) }),
+        )
+        voiceRecorder.state.test {
+            assertThat(awaitItem()).isEqualTo(VoiceRecorderState.Idle)
+
+            voiceRecorder.startRecord()
+            assertThat(awaitItem()).isEqualTo(VoiceRecorderState.Recording(0.seconds, listOf(1.0f)))
+            timeSource += 78.seconds
+            assertThat(awaitItem()).isEqualTo(VoiceRecorderState.Recording(78.seconds, listOf()))
+            timeSource += 1.milliseconds
+
+            assertThat(awaitItem()).isEqualTo(
+                VoiceRecorderState.Finished(
+                    file = File(FILE_PATH),
+                    mimeType = MimeTypes.Ogg,
+                    waveform = List(100) { 1f },
+                    duration = 78.seconds,
+                )
+            )
+        }
+    }
+
+    @Test
+    fun `when the upload cap is unknown, the app limit stands`() = runTest {
+        val voiceRecorder = createDefaultVoiceRecorder(
+            matrixClient = FakeMatrixClient(getMaxUploadSizeResult = { Result.failure(IllegalStateException("offline")) }),
+        )
+        voiceRecorder.state.test {
+            assertThat(awaitItem()).isEqualTo(VoiceRecorderState.Idle)
+            voiceRecorder.startRecord()
+            skipItems(1)
+            timeSource += 5.minutes
+            assertThat(awaitItem()).isEqualTo(VoiceRecorderState.Recording(5.minutes, listOf()))
+        }
+    }
+
+    @Test
+    fun `seconds that fit never exceed the app limit and survive nonsense input`() {
+        assertThat(durationFor(256L * 1024, 24_000)).isEqualTo(78.seconds)
+        assertThat(durationFor(Long.MAX_VALUE / 100, 24_000)).isEqualTo(VoiceMessageConfig.maxVoiceMessageDuration)
+        assertThat(durationFor(0, 24_000)).isEqualTo(VoiceMessageConfig.maxVoiceMessageDuration)
+        assertThat(durationFor(1024, 0)).isEqualTo(VoiceMessageConfig.maxVoiceMessageDuration)
+    }
+
+    @Test
     fun `when stopped, it provides a file and duration`() = runTest {
         val voiceRecorder = createDefaultVoiceRecorder()
         voiceRecorder.state.test {
@@ -123,7 +174,9 @@ class DefaultVoiceRecorderTest {
         }
     }
 
-    private fun TestScope.createDefaultVoiceRecorder(): DefaultVoiceRecorder {
+    private fun TestScope.createDefaultVoiceRecorder(
+        matrixClient: MatrixClient = FakeMatrixClient(getMaxUploadSizeResult = { Result.success(Long.MAX_VALUE) }),
+    ): DefaultVoiceRecorder {
         val fileConfig = VoiceRecorderModule.provideVoiceFileConfig()
         return DefaultVoiceRecorder(
             dispatchers = testCoroutineDispatchers(),
@@ -142,6 +195,7 @@ class DefaultVoiceRecorderTest {
             fileConfig = fileConfig,
             fileManager = FakeVoiceFileManager(fakeFileSystem, fileConfig, FILE_ID),
             audioLevelCalculator = FakeAudioLevelCalculator(),
+            matrixClient = matrixClient,
             sessionCoroutineScope = backgroundScope,
         )
     }
