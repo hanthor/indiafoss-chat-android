@@ -4,7 +4,7 @@
 > United. Element is a trademark of Element Creations Ltd; this app is renamed
 > and re-identified (`org.indiafoss.chat`) and ships no Element branding.
 
-[**Download the Android preview APK**](https://github.com/hanthor/indiafoss-chat-android/releases/download/nightly/indiafoss-chat-android.apk) · [Release notes and checksums](https://github.com/hanthor/indiafoss-chat-android/releases/tag/nightly) · [Open the Companion](https://hanthor.github.io/indiafoss-companion/)
+[**Download the Android preview APK**](https://github.com/hanthor/indiafoss-chat-android/releases/download/nightly/indiafoss-chat-android-arm64-v8a.apk) (arm64-v8a, the build for nearly every recent phone; the [universal APK](https://github.com/hanthor/indiafoss-chat-android/releases/download/nightly/indiafoss-chat-android.apk) carries all four architectures and is several times larger) · [Release notes and checksums](https://github.com/hanthor/indiafoss-chat-android/releases/tag/nightly) · [Open the Companion](https://hanthor.github.io/indiafoss-companion/)
 
 Android 7.0 or later. Download the APK on your phone, open it and allow installation from your browser when prompted. Chat is a separate app from the Companion. This is a preview; physical-device mesh, background and recovery acceptance is tracked in #45 and #49. [Publishing and signing](docs/preview-release.md).
 
