@@ -13,12 +13,15 @@ echo "Building the project with compose report..."
 ./gradlew assembleGplayDebug -PcomposeCompilerReports=true -PcomposeCompilerMetrics=true --stacktrace
 
 echo "Checking stability of State classes..."
-# Using the find command, list all the files ending with -classes.txt
-find . -type f -name "*-classes.txt" | while read -r file; do
-    # echo "Processing $file"
-    # Check that there is no line containing "unstable class .*State {"
+found_unstable=0
+# List all the files ending with -classes.txt
+while read -r file; do
     if grep -E 'unstable class .*State \{' "$file"; then
         echo "❌ ERROR: Found unstable State class in $file"
-        exit 1
+        found_unstable=1
     fi
-done
+done < <(find . -type f -name "*-classes.txt")
+
+if [[ "$found_unstable" -eq 1 ]]; then
+    exit 1
+fi
