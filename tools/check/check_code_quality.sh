@@ -15,18 +15,36 @@ TMP_DIR="${REPO_ROOT}/tmp"
 mkdir -p "${TMP_DIR}"
 
 searchForbiddenStringsScript="${TMP_DIR}/search_forbidden_strings.pl"
+scriptUrl="https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl"
+# The script runs with our source tree as input, so it is pinned by digest:
+# a changed upstream fails here instead of running unreviewed code.
+scriptSha256="1dc0e0e4c954c92d549ca0f4864591f848b58357c032fe157e5cd56c89d79c7c"
 
-if [[ -f ${searchForbiddenStringsScript} ]]; then
-  echo "${searchForbiddenStringsScript} already there"
+verifyScript() {
+  local actual
+  actual="$(sha256sum "$1" | awk '{print $1}')"
+  [[ "${actual}" == "${scriptSha256}" ]]
+}
+
+if [[ -f ${searchForbiddenStringsScript} ]] && verifyScript "${searchForbiddenStringsScript}"; then
+  echo "${searchForbiddenStringsScript} already there and verified"
 else
   echo "Get the script"
-  wget https://raw.githubusercontent.com/matrix-org/matrix-dev-tools/develop/bin/search_forbidden_strings.pl -O "${searchForbiddenStringsScript}"
-fi
-
-if [[ -x ${searchForbiddenStringsScript} ]]; then
-  echo "${searchForbiddenStringsScript} is already executable"
-else
-  echo "Make the script executable"
+  download="${searchForbiddenStringsScript}.download"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "${scriptUrl}" -o "${download}"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "${scriptUrl}" -O "${download}"
+  else
+    echo "❌ ERROR: neither curl nor wget is available to fetch ${scriptUrl}" >&2
+    exit 1
+  fi
+  if ! verifyScript "${download}"; then
+    echo "❌ ERROR: ${scriptUrl} does not match the pinned SHA-256 ${scriptSha256}; review it before updating the pin." >&2
+    rm -f "${download}"
+    exit 1
+  fi
+  mv "${download}" "${searchForbiddenStringsScript}"
   chmod u+x "${searchForbiddenStringsScript}"
 fi
 
