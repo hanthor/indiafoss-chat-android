@@ -483,6 +483,8 @@ class DefaultBugReporter(
                 }
         } catch (e: IOException) {
             Timber.e(e, "getLogCatContent fails")
+        } finally {
+            logcatProcess.destroy()
         }
     }
 
