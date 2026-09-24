@@ -22,6 +22,7 @@ import io.element.android.services.neutrino.api.CaptureResult
 import io.element.android.services.neutrino.api.DiscoverableResult
 import io.element.android.services.neutrino.api.DiscoveredPeer
 import io.element.android.services.neutrino.api.NetworkAddressProvider
+import io.element.android.services.neutrino.api.NeutrinoDefaults
 import io.element.android.services.neutrino.api.NeutrinoService
 import io.element.neutrino.CaptureException
 import io.element.neutrino.NeutrinoHandle
@@ -102,7 +103,7 @@ class DefaultNeutrinoService(
                 bindAddr = bindAddr,
                 // The single forced user. The login flow auto-logs-in as this localpart
                 // (see LoginFlowNode's forced-provider path).
-                localpart = "n",
+                localpart = NeutrinoDefaults.LOCALPART,
                 storageDir = context.filesDir.resolve("data").path,
                 outboundConcurrency = 4u,
                 // Run the in-process low-bandwidth (CoAP/UDP) federation sidecar on
