@@ -76,6 +76,7 @@ import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analytics.api.watchers.AnalyticsColdStartWatcher
 import io.element.android.services.appnavstate.api.ROOM_OPENED_FROM_NOTIFICATION
+import io.element.android.services.neutrino.api.NeutrinoDefaults
 import io.element.android.services.neutrino.api.NeutrinoService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -93,8 +94,6 @@ import timber.log.Timber
 // The embedded Neutrino homeserver is reached over loopback and performs no
 // authentication on the CS API, so we log in headlessly with a fixed localpart and
 // skip the login UI entirely. The password is ignored by the server.
-private const val NEUTRINO_HOMESERVER_URL = "http://localhost:8008"
-private const val NEUTRINO_LOCALPART = "n"
 private const val NEUTRINO_AUTO_LOGIN_PASSWORD = "neutrino"
 
 @ContributesNode(AppScope::class)
@@ -288,9 +287,9 @@ class RootFlowNode(
             return
         }
         autoLoginJob = lifecycleScope.launch {
-            authenticationService.setHomeserver(NEUTRINO_HOMESERVER_URL)
+            authenticationService.setHomeserver(NeutrinoDefaults.HOMESERVER_URL)
                 .mapCatchingExceptions {
-                    authenticationService.login(NEUTRINO_LOCALPART, NEUTRINO_AUTO_LOGIN_PASSWORD).getOrThrow()
+                    authenticationService.login(NeutrinoDefaults.LOCALPART, NEUTRINO_AUTO_LOGIN_PASSWORD).getOrThrow()
                 }
                 .onFailure { error ->
                     Timber.e(error, "Neutrino auto-login failed")
