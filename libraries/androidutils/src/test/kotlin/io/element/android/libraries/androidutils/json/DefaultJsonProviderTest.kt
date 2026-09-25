@@ -19,12 +19,9 @@ class DefaultJsonProviderTest {
     @Serializable
     data class Sample(val name: String, val value: Int)
 
-    // Decodes explicitly via Sample.serializer() rather than the reified
-    // decodeFromString<Sample>() extension. The latter resolves the serializer
-    // through kotlinx.serialization's runtime lookup, which does not reliably
-    // find serializers for classes compiled in a module where the Metro IR
-    // compiler plugin is also applied (this module uses setupDependencyInjection()).
-    // The explicit serializer is generated at compile time and is not affected.
+    // Decodes explicitly via Sample.serializer(), matching the pattern used
+    // elsewhere in this codebase (e.g. WidgetMessageSerializer, MessageParser)
+    // instead of the reified decodeFromString<Sample>() extension.
     private fun Json.decodeSample(input: String): Sample = decodeFromString(Sample.serializer(), input)
 
     @Test
