@@ -10,6 +10,7 @@ import extension.testCommonDependencies
  */
 plugins {
     id("io.element.android-library")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
