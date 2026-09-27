@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config xmlns:tools="http://schemas.android.com/tools">
-    <!-- Ref: https://developer.android.com/training/articles/security-config.html -->
-    <!-- By default, do not allow clearText traffic -->
+    <!-- Debug build: allow user-installed certificates for development/testing -->
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 
