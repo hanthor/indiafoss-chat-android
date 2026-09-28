@@ -12,6 +12,8 @@ import com.google.common.truth.Truth.assertThat
 import io.element.android.libraries.core.extensions.runCatchingExceptions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.junit.Test
 
@@ -54,7 +56,7 @@ class DefaultJsonProviderTest {
                 "name": "a",
                 /* a block comment */ "value": 1
             }
-            """
+            """.trimIndent()
         )
         assertThat(decoded).isEqualTo(Sample("a", 1))
     }
@@ -72,7 +74,7 @@ class DefaultJsonProviderTest {
     fun `allows a trailing comma in arrays`() {
         val json = DefaultJsonProvider().invoke()
         val list = json.decodeFromString(
-            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.builtins.serializer<String>()),
+            ListSerializer(String.serializer()),
             """["a","b","c",]"""
         )
         assertThat(list).isEqualTo(listOf("a", "b", "c"))
