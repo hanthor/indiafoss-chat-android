@@ -74,7 +74,6 @@ import io.element.android.libraries.outbox.test.FakeOutboxRoomTracker
 import io.element.android.libraries.outbox.test.anOutboxRecord
 import io.element.android.libraries.preferences.test.InMemorySessionPreferencesStore
 import io.element.android.services.analytics.test.FakeAnalyticsService
-import io.element.android.services.toolbox.test.systemclock.FakeSystemClock
 import io.element.android.tests.testutils.WarmUpRule
 import io.element.android.tests.testutils.awaitLastSequentialItem
 import io.element.android.tests.testutils.consumeItemsUntilPredicate
@@ -1130,7 +1129,6 @@ class TimelinePresenterTest {
             liveLocationShareManager = liveLocationShareManager,
             outbox = outbox,
             outboxRoomTracker = outboxRoomTracker,
-            systemClock = FakeSystemClock(),
             snackbarDispatcher = snackbarDispatcher,
         )
     }

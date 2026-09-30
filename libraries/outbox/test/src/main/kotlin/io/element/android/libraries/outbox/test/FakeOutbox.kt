@@ -50,7 +50,7 @@ class FakeOutbox(
         sendQueueUpdates.add(update)
     }
 
-    override suspend fun reconcile(sessionId: SessionId, roomId: RoomId, observations: List<OutboxObservation>, nowMillis: Long) {
+    override suspend fun reconcile(sessionId: SessionId, roomId: RoomId, observations: List<OutboxObservation>, nowMillis: Long?) {
         reconciled.add(observations)
     }
 
