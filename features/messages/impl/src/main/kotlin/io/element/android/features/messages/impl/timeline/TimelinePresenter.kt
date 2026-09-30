@@ -68,7 +68,6 @@ import io.element.android.services.analytics.api.AnalyticsLongRunningTransaction
 import io.element.android.services.analytics.api.AnalyticsService
 import io.element.android.services.analytics.api.finishLongRunningTransaction
 import io.element.android.services.analyticsproviders.api.AnalyticsUserData
-import io.element.android.services.toolbox.api.systemclock.SystemClock
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
@@ -106,7 +105,6 @@ class TimelinePresenter(
     private val liveLocationShareManager: ActiveLiveLocationShareManager,
     private val outbox: Outbox,
     private val outboxRoomTracker: OutboxRoomTracker,
-    private val systemClock: SystemClock,
     private val snackbarDispatcher: SnackbarDispatcher,
 ) : Presenter<TimelineState> {
     private val tag = "TimelinePresenter"
@@ -269,7 +267,6 @@ class TimelinePresenter(
                             sessionId = room.sessionId,
                             roomId = room.roomId,
                             observations = items.toOutboxObservations(room.sessionId),
-                            nowMillis = systemClock.epochMillis(),
                         )
                     }
                     .launchIn(this)
