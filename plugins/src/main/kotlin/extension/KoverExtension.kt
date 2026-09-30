@@ -126,6 +126,12 @@ fun Project.setupKover() {
                         "io.element.android.tests.konsist.failures",
                         // Copied from Appyx
                         "io.element.android.libraries.architecture.appyx.SafeChildrenTransitionScope",
+                        // Generated Metro dependency-injection bindings: graphs, factories and
+                        // their contribution/mirror inner classes. These have no logic to test.
+                        "*MetroFactory*",
+                        "*BindsMirror*",
+                        "*MetroContribution*",
+                        "*AppGraph\$*",
                     )
                     annotatedBy(
                         "androidx.compose.ui.tooling.preview.Preview",
