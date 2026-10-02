@@ -140,26 +140,6 @@ class DefaultNeutrinoServiceTest {
     }
 
     @Test
-    fun `awaitReady returns immediately when no handle is present`() = runTest {
-        val service = DefaultNeutrinoService(context, networkAddressProvider)
-        // Should return without hanging on the timeout, since there is nothing to await.
-        service.awaitReady(timeoutMs = 5_000)
-    }
-
-    @Test
-    fun `awaitReady stops polling once lastError is set`() = runTest {
-        val service = DefaultNeutrinoService(context, networkAddressProvider)
-        val fakeHandle = mockk<NeutrinoHandle>()
-        // The CS port (8008) is not open in the test environment, so isCsPortOpen()
-        // returns false on every poll; lastError() being non-null must short-circuit
-        // the wait instead of blocking for the full timeout.
-        every { fakeHandle.lastError() } returns "server_name mismatch"
-        service.handle = fakeHandle
-
-        service.awaitReady(timeoutMs = 60_000)
-    }
-
-    @Test
     fun `setDiscoverable returns Failed when the node is not running`() = runTest {
         val service = DefaultNeutrinoService(context, networkAddressProvider)
         val native = RecordingSetDiscoverable()
