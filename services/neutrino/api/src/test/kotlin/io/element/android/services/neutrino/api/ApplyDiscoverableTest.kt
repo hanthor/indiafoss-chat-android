@@ -9,6 +9,7 @@ package io.element.android.services.neutrino.api
 
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.fail
 import org.junit.Test
 
 /**
@@ -34,11 +35,13 @@ class ApplyDiscoverableTest {
         val service = StubNeutrinoService { DiscoverableResult.Failed("node is not running") }
         val persisted = mutableListOf<Boolean>()
 
-        val error = runCatching { service.applyDiscoverable(false) { persisted += it } }.exceptionOrNull()
+        try {
+            service.applyDiscoverable(false) { persisted += it }
+            fail("Expected DiscoverabilityNotAppliedException, but nothing was thrown")
+        } catch (e: DiscoverabilityNotAppliedException) {
+            assertThat(e.result).isEqualTo(DiscoverableResult.Failed("node is not running"))
+        }
 
-        assertThat(error).isInstanceOf(DiscoverabilityNotAppliedException::class.java)
-        assertThat((error as DiscoverabilityNotAppliedException).result)
-            .isEqualTo(DiscoverableResult.Failed("node is not running"))
         assertThat(persisted).isEmpty()
     }
 
@@ -57,9 +60,13 @@ class ApplyDiscoverableTest {
         val service = StubNeutrinoService { DiscoverableResult.Unavailable }
         val persisted = mutableListOf<Boolean>()
 
-        val error = runCatching { service.applyDiscoverable(false) { persisted += it } }.exceptionOrNull()
+        try {
+            service.applyDiscoverable(false) { persisted += it }
+            fail("Expected DiscoverabilityNotAppliedException, but nothing was thrown")
+        } catch (e: DiscoverabilityNotAppliedException) {
+            assertThat(e.result).isEqualTo(DiscoverableResult.Unavailable)
+        }
 
-        assertThat(error).isInstanceOf(DiscoverabilityNotAppliedException::class.java)
         assertThat(persisted).isEmpty()
     }
 
@@ -67,11 +74,12 @@ class ApplyDiscoverableTest {
     fun `a throwing persist is not swallowed`() = runTest {
         val service = StubNeutrinoService { DiscoverableResult.Applied }
 
-        val error = runCatching {
+        try {
             service.applyDiscoverable(true) { error("store is gone") }
-        }.exceptionOrNull()
-
-        assertThat(error).isInstanceOf(IllegalStateException::class.java)
+            fail("Expected IllegalStateException, but nothing was thrown")
+        } catch (e: IllegalStateException) {
+            assertThat(e).hasMessageThat().isEqualTo("store is gone")
+        }
     }
 }
 
