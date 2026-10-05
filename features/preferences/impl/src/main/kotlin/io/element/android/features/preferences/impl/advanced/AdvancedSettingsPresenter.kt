@@ -26,9 +26,8 @@ import io.element.android.libraries.featureflag.api.FeatureFlagService
 import io.element.android.libraries.featureflag.api.FeatureFlags
 import io.element.android.libraries.preferences.api.store.AppPreferencesStore
 import io.element.android.libraries.preferences.api.store.SessionPreferencesStore
-import io.element.android.services.neutrino.api.DiscoverabilityNotAppliedException
 import io.element.android.services.neutrino.api.NeutrinoService
-import io.element.android.services.neutrino.api.satisfies
+import io.element.android.services.neutrino.api.applyDiscoverable
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collect
@@ -152,13 +151,12 @@ class AdvancedSettingsPresenter(
                 is AdvancedSettingsEvents.SetDiscoverable -> sessionCoroutineScope.launch {
                     // Change the node first and persist only what it accepted, so the
                     // saved preference (re-applied at the next start) never claims a
-                    // "hidden" the node is not delivering.
+                    // "hidden" the node is not delivering. [applyDiscoverable] owns
+                    // that ordering rule.
                     suspend {
-                        val result = neutrinoService.setDiscoverable(event.discoverable)
-                        if (!result.satisfies(event.discoverable)) {
-                            throw DiscoverabilityNotAppliedException(result)
+                        neutrinoService.applyDiscoverable(event.discoverable) {
+                            sessionPreferencesStore.setDiscoverable(it)
                         }
-                        sessionPreferencesStore.setDiscoverable(event.discoverable)
                     }.runCatchingUpdatingState(setDiscoverableAction)
                 }
                 AdvancedSettingsEvents.ClearDiscoverableError -> setDiscoverableAction.value = AsyncAction.Uninitialized
