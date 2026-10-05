@@ -4,17 +4,25 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+      time: '09:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 5
     reviewers:
       - 'hanthor'
     labels:
       - 'dependencies'
       - 'security'
+    allow:
+      - dependency-type: 'all'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
+      time: '09:00'
+      timezone: 'UTC'
     open-pull-requests-limit: 5
     labels:
       - 'dependencies'
       - 'ci'
+    allow:
+      - dependency-type: 'all'
