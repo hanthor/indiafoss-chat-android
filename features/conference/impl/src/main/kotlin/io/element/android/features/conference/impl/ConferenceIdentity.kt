@@ -5,7 +5,7 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 import androidx.compose.ui.graphics.Color
 

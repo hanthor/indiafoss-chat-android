@@ -5,18 +5,20 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 import android.app.Application
 import androidx.core.net.toUri
 import com.google.common.truth.Truth.assertThat
-import io.element.android.x.conference.ConferenceLinkDispatch.Communication
-import io.element.android.x.conference.ConferenceLinkDispatch.CompanionRoute
-import io.element.android.x.conference.ConferenceLinkDispatch.ExternalWeb
-import io.element.android.x.conference.ConferenceLinkDispatch.IndiafossHandoff
-import io.element.android.x.conference.ConferenceLinkDispatch.InternalConference
-import io.element.android.x.conference.ConferenceLinkDispatch.MatrixLink
-import io.element.android.x.conference.ConferenceLinkDispatch.Rejected
+import io.element.android.appnav.intent.IndiafossLinks
+import io.element.android.features.conference.api.ConferenceLinkDispatch.Communication
+import io.element.android.features.conference.api.ConferenceLinkDispatch.CompanionRoute
+import io.element.android.features.conference.api.ConferenceLinkDispatch.ExternalWeb
+import io.element.android.features.conference.api.ConferenceLinkDispatch.IndiafossHandoff
+import io.element.android.features.conference.api.ConferenceLinkDispatch.InternalConference
+import io.element.android.features.conference.api.ConferenceLinkDispatch.MatrixLink
+import io.element.android.features.conference.api.ConferenceLinkDispatch.Rejected
+import io.element.android.features.conference.api.ConferenceLinks
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -28,7 +30,8 @@ import org.robolectric.annotation.Config
 class ConferenceLinksTest {
     private val base = ConferenceLinks.COMPANION_URL.trimEnd('/')
 
-    private fun classify(link: String) = ConferenceLinks.classify(link.toUri())
+    private fun classify(link: String) = ConferenceLinks.classify(link.toUri(), IndiafossLinks::toMatrixTo)
+    private fun entry(data: android.net.Uri?) = ConferenceLinks.entry(data, IndiafossLinks::toMatrixTo)
 
     // ---- Internal navigation is limited to the trusted origin and base path ----
 
@@ -172,7 +175,7 @@ class ConferenceLinksTest {
 
     @Test
     fun `empty relative and oversized input is rejected without throwing`() {
-        assertThat(ConferenceLinks.classify(null)).isInstanceOf(Rejected::class.java)
+        assertThat(ConferenceLinks.classify(null, IndiafossLinks::toMatrixTo)).isInstanceOf(Rejected::class.java)
         assertThat(classify("")).isInstanceOf(Rejected::class.java)
         assertThat(classify("   ")).isInstanceOf(Rejected::class.java)
         assertThat(classify("/schedule")).isInstanceOf(Rejected::class.java)
@@ -186,64 +189,64 @@ class ConferenceLinksTest {
 
     @Test
     fun `no data or a bare conference link opens the companion home`() {
-        assertThat(ConferenceLinks.entry(null)).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://conference".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://conference/".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry(null)).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference/".toUri())).isEqualTo(ConferenceLinks.HOME)
         assertThat(ConferenceLinks.HOME.pwaUrl).isEqualTo(ConferenceLinks.COMPANION_URL)
         assertThat(ConferenceLinks.HOME.companionUri).isEqualTo("indiafoss://event/".toUri())
     }
 
     @Test
     fun `a conference route keeps its path query and fragment on the PWA url`() {
-        val route = ConferenceLinks.entry("indiafoss://conference/schedule?day=2#now".toUri())
+        val route = entry("indiafoss://conference/schedule?day=2#now".toUri())
         assertThat(route.pwaUrl).isEqualTo("$base/schedule?day=2#now")
         // The PWA-only route is not something the native companion can show.
         assertThat(route.companionUri).isNull()
-        assertThat(ConferenceLinks.entry("indiafoss://conference/explore/booths".toUri()).pwaUrl).isEqualTo("$base/explore/booths")
+        assertThat(entry("indiafoss://conference/explore/booths".toUri()).pwaUrl).isEqualTo("$base/explore/booths")
     }
 
     @Test
     fun `a conference route the native companion handles is translated to its deep link with the event context`() {
-        val route = ConferenceLinks.entry("indiafoss://conference/activity/session-1?at=hall-a".toUri())
+        val route = entry("indiafoss://conference/activity/session-1?at=hall-a".toUri())
         assertThat(route.companionUri).isEqualTo("indiafoss://activity/session-1?at=hall-a".toUri())
         assertThat(route.pwaUrl).isEqualTo("$base/activity/session-1?at=hall-a")
-        assertThat(ConferenceLinks.entry("indiafoss://conference/location/hall-a".toUri()).companionUri)
+        assertThat(entry("indiafoss://conference/location/hall-a".toUri()).companionUri)
             .isEqualTo("indiafoss://location/hall-a".toUri())
-        assertThat(ConferenceLinks.entry("indiafoss://conference/event".toUri()).companionUri).isEqualTo(ConferenceLinks.HOME.companionUri)
+        assertThat(entry("indiafoss://conference/event".toUri()).companionUri).isEqualTo(ConferenceLinks.HOME.companionUri)
         // Three segments, or an id outside the companion alphabet, stays on the PWA.
-        assertThat(ConferenceLinks.entry("indiafoss://conference/activity/session-1/notes".toUri()).companionUri).isNull()
-        assertThat(ConferenceLinks.entry("indiafoss://conference/activity/has%20space".toUri()).companionUri).isNull()
+        assertThat(entry("indiafoss://conference/activity/session-1/notes".toUri()).companionUri).isNull()
+        assertThat(entry("indiafoss://conference/activity/has%20space".toUri()).companionUri).isNull()
     }
 
     @Test
     fun `the path always joins the base url with exactly one slash`() {
         // The alleged missing-leading-slash concatenation: android.net.Uri never yields a path without one.
         assertThat("indiafoss://conference/schedule".toUri().path).isEqualTo("/schedule")
-        assertThat(ConferenceLinks.entry("indiafoss://conference/schedule".toUri()).pwaUrl).isEqualTo("$base/schedule")
+        assertThat(entry("indiafoss://conference/schedule".toUri()).pwaUrl).isEqualTo("$base/schedule")
         // A malformed host such as "conferenceschedule" is not our route at all, so it cannot produce a joined url.
-        assertThat(ConferenceLinks.entry("indiafoss://conferenceschedule".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conferenceschedule".toUri())).isEqualTo(ConferenceLinks.HOME)
         // Double and trailing slashes collapse instead of reaching GitHub Pages as "//schedule".
-        assertThat(ConferenceLinks.entry("indiafoss://conference//schedule".toUri()).pwaUrl).isEqualTo("$base/schedule")
-        assertThat(ConferenceLinks.entry("indiafoss://conference/schedule//".toUri()).pwaUrl).isEqualTo("$base/schedule")
-        assertThat(ConferenceLinks.entry("indiafoss://conference///".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference//schedule".toUri()).pwaUrl).isEqualTo("$base/schedule")
+        assertThat(entry("indiafoss://conference/schedule//".toUri()).pwaUrl).isEqualTo("$base/schedule")
+        assertThat(entry("indiafoss://conference///".toUri())).isEqualTo(ConferenceLinks.HOME)
     }
 
     @Test
     fun `path segments are re-encoded and traversal or excess depth falls back to home`() {
-        assertThat(ConferenceLinks.entry("indiafoss://conference/sch%20edule".toUri()).pwaUrl).isEqualTo("$base/sch%20edule")
-        assertThat(ConferenceLinks.entry("indiafoss://conference/schédule".toUri()).pwaUrl).isEqualTo("$base/sch%C3%A9dule")
-        assertThat(ConferenceLinks.entry("indiafoss://conference/../../evil".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://conference/%2e%2e/evil".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://conference/./schedule".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://conference/a/b/c/d/e/f/g/h/i".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://conference/${"a".repeat(2100)}".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference/sch%20edule".toUri()).pwaUrl).isEqualTo("$base/sch%20edule")
+        assertThat(entry("indiafoss://conference/schédule".toUri()).pwaUrl).isEqualTo("$base/schédule")
+        assertThat(entry("indiafoss://conference/../../evil".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference/%2e%2e/evil".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference/./schedule".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference/a/b/c/d/e/f/g/h/i".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://conference/${"a".repeat(2100)}".toUri())).isEqualTo(ConferenceLinks.HOME)
     }
 
     @Test
     fun `entry data that is not a conference route opens the home rather than being forwarded`() {
-        assertThat(ConferenceLinks.entry("https://matrix.to/#/@alice:matrix.org".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("https://evil.example/".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("javascript:alert(1)".toUri())).isEqualTo(ConferenceLinks.HOME)
-        assertThat(ConferenceLinks.entry("indiafoss://chat?dm=%40alice%3Amatrix.org".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("https://matrix.to/#/@alice:matrix.org".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("https://evil.example/".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("javascript:alert(1)".toUri())).isEqualTo(ConferenceLinks.HOME)
+        assertThat(entry("indiafoss://chat?dm=%40alice%3Amatrix.org".toUri())).isEqualTo(ConferenceLinks.HOME)
     }
 }

@@ -5,12 +5,15 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 import android.app.Application
 import androidx.core.net.toUri
 import com.google.common.truth.Truth.assertThat
-import io.element.android.x.conference.ConferenceLinkDispatch.CompanionRoute
+import io.element.android.features.conference.api.CompanionAction
+import io.element.android.features.conference.api.ConferenceEntry
+import io.element.android.features.conference.api.ConferenceLinkDispatch.CompanionRoute
+import io.element.android.features.conference.api.ConferenceLinks
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner

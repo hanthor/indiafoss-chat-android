@@ -5,9 +5,7 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
-
-import io.element.android.x.conference.ConferenceLinkDispatch.CompanionRoute
+package io.element.android.features.conference.api
 
 /** What the "Open Companion" action on the conference entry does for the route on screen. */
 sealed interface CompanionAction {
@@ -20,7 +18,7 @@ sealed interface CompanionAction {
 
 /**
  * Pure decision behind the conference entry header. Nothing Android is
- * touched here; [ConferenceLinkDispatcher] performs whichever action is
+ * touched here; the implementation dispatcher performs whichever action is
  * chosen and falls back to the browser when the native Companion declines.
  */
 object ConferenceEntry {

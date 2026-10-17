@@ -5,12 +5,12 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
-// The app module has no screenshot coverage, so the header state is exercised here for the Kover states rule.
+// The feature has no screenshot coverage, so the header state is exercised here for the Kover states rule.
 class ConferenceHeaderStateTest {
     @Test
     fun `state carries whether the native companion is installed`() {
