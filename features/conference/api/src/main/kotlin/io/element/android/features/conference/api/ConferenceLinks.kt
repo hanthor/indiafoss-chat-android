@@ -5,16 +5,14 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.api
 
 import android.net.Uri
 import androidx.core.net.toUri
-import io.element.android.appnav.intent.IndiafossLinks
 
 /**
  * Where a link tapped inside the conference WebView, or an intent that opened
- * [ConferenceActivity], must go. Produced by [ConferenceLinks.classify], acted
- * on by [ConferenceLinkDispatcher].
+ * the conference activity, must go. Produced by [ConferenceLinks.classify].
  */
 sealed interface ConferenceLinkDispatch {
     /** Same trusted companion origin and base path: the WebView keeps navigating. */
@@ -26,7 +24,7 @@ sealed interface ConferenceLinkDispatch {
      */
     data class MatrixLink(val uri: Uri) : ConferenceLinkDispatch
 
-    /** `indiafoss://chat…` / `indiafoss://friend…` payload that [IndiafossLinks] accepts: this app's messenger. */
+    /** `indiafoss://chat…` / `indiafoss://friend…` payload accepted by the app's IndiaFOSS intent adapter. */
     data class IndiafossHandoff(val uri: Uri) : ConferenceLinkDispatch
 
     /**
@@ -82,13 +80,13 @@ object ConferenceLinks {
 
     private val COMMUNICATION_SCHEMES = setOf("mailto", "tel", "sms", "smsto")
 
-    /** The companion home: what [ConferenceActivity] shows when the intent carries no usable route. */
+    /** The companion home shown when an intent carries no usable route. */
     val HOME = ConferenceLinkDispatch.CompanionRoute(
         companionUri = "$SCHEME://event/".toUri(),
         pwaUrl = COMPANION_URL,
     )
 
-    fun classify(uri: Uri?): ConferenceLinkDispatch {
+    fun classify(uri: Uri?, toMatrixTo: (String) -> String?): ConferenceLinkDispatch {
         if (uri == null) return ConferenceLinkDispatch.Rejected("no uri")
         if (uri.toString().length > MAX_LENGTH) return ConferenceLinkDispatch.Rejected("oversized")
         val scheme = uri.scheme?.lowercase() ?: return ConferenceLinkDispatch.Rejected("no scheme")
@@ -99,18 +97,18 @@ object ConferenceLinks {
                 "user", "room" -> ConferenceLinkDispatch.MatrixLink(uri)
                 else -> ConferenceLinkDispatch.Rejected("unsupported element link")
             }
-            SCHEME -> classifyIndiafoss(uri)
+            SCHEME -> classifyIndiafoss(uri, toMatrixTo)
             in COMMUNICATION_SCHEMES -> ConferenceLinkDispatch.Communication(uri)
             else -> ConferenceLinkDispatch.Rejected("unsupported scheme")
         }
     }
 
     /**
-     * Where an intent that opened [ConferenceActivity] lands. Only a valid
+     * Where an intent that opened the conference activity lands. Only a valid
      * `indiafoss://` route is honoured; anything else opens the companion home.
      */
-    fun entry(data: Uri?): ConferenceLinkDispatch.CompanionRoute {
-        return data?.let { classify(it) } as? ConferenceLinkDispatch.CompanionRoute ?: HOME
+    fun entry(data: Uri?, toMatrixTo: (String) -> String?): ConferenceLinkDispatch.CompanionRoute {
+        return data?.let { classify(it, toMatrixTo) } as? ConferenceLinkDispatch.CompanionRoute ?: HOME
     }
 
     private fun classifyWeb(uri: Uri, scheme: String): ConferenceLinkDispatch {
@@ -137,10 +135,10 @@ object ConferenceLinks {
         return MATRIX_URI_TYPES.any { body.startsWith(it) && body.length > it.length }
     }
 
-    private fun classifyIndiafoss(uri: Uri): ConferenceLinkDispatch {
+    private fun classifyIndiafoss(uri: Uri, toMatrixTo: (String) -> String?): ConferenceLinkDispatch {
         val host = uri.host?.lowercase()?.takeIf { it.isNotBlank() } ?: return ConferenceLinkDispatch.Rejected("indiafoss link without host")
         return when (host) {
-            "chat", "friend" -> if (IndiafossLinks.toMatrixTo(uri.toString()) != null) {
+            "chat", "friend" -> if (toMatrixTo(uri.toString()) != null) {
                 ConferenceLinkDispatch.IndiafossHandoff(uri)
             } else {
                 ConferenceLinkDispatch.Rejected("unsupported handoff payload")

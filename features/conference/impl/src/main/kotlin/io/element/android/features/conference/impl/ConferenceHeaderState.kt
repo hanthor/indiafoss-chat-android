@@ -5,7 +5,7 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 /** [hasNativeCompanion]: the native Companion is installed, so the action hands off instead of opening the browser. */
 data class ConferenceHeaderState(

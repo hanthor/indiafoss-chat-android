@@ -5,7 +5,7 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -28,8 +28,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
+import io.element.android.appnav.intent.IndiafossLinks
 import io.element.android.compound.theme.ElementTheme
-import io.element.android.x.conference.ConferenceLinkDispatch.CompanionRoute
+import io.element.android.features.conference.api.CompanionAction
+import io.element.android.features.conference.api.ConferenceEntry
+import io.element.android.features.conference.api.ConferenceLinkDispatch
+import io.element.android.features.conference.api.ConferenceLinkDispatch.CompanionRoute
+import io.element.android.features.conference.api.ConferenceLinks
 
 /**
  * Hosts the IndiaFOSS Companion PWA (schedule, ranking, itinerary, venue map,
@@ -64,7 +69,7 @@ class ConferenceActivity : ComponentActivity() {
             settings.mediaPlaybackRequiresUserGesture = false
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    return dispatcher.dispatch(ConferenceLinks.classify(request.url))
+                    return dispatcher.dispatch(ConferenceLinks.classify(request.url, IndiafossLinks::toMatrixTo))
                 }
             }
         }
@@ -125,7 +130,7 @@ class ConferenceActivity : ComponentActivity() {
 
     /** `indiafoss://conference/<route>`: the native companion when it takes the route, else that route on the PWA. */
     private fun open(intent: Intent?) {
-        route = ConferenceLinks.entry(intent?.data)
+        route = ConferenceLinks.entry(intent?.data, IndiafossLinks::toMatrixTo)
         if (dispatcher.openInCompanion(route)) {
             finish()
         } else {

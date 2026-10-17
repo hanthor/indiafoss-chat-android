@@ -75,7 +75,7 @@
         -->
         <!-- IndiaFOSS Companion (schedule, plan, map, contact cards) hosted in-app. -->
         <activity
-            android:name=".conference.ConferenceActivity"
+            android:name="io.element.android.features.conference.impl.ConferenceActivity"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:exported="true"
             android:label="@string/indiafoss_conference_title"

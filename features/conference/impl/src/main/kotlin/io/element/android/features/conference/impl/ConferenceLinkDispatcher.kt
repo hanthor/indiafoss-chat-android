@@ -5,15 +5,16 @@
  * Please see LICENSE files in the repository root for full details.
  */
 
-package io.element.android.x.conference
+package io.element.android.features.conference.impl
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import io.element.android.features.conference.api.ConferenceLinkDispatch
+import io.element.android.features.conference.api.ConferenceLinks
 import io.element.android.libraries.androidutils.R
 import io.element.android.libraries.androidutils.system.toast
-import timber.log.Timber
 
 /**
  * Acts on a [ConferenceLinkDispatch]. Every `startActivity` is guarded: a

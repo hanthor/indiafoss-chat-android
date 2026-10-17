@@ -9,7 +9,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:data="indiafoss://conference/"
-            android:targetClass="io.element.android.x.conference.ConferenceActivity"
+            android:targetClass="io.element.android.features.conference.impl.ConferenceActivity"
             android:targetPackage="org.indiafoss.chat" />
     </shortcut>
 </shortcuts>
