@@ -1,74 +1,90 @@
-# Maestro
+# Maestro UI tests
 
-Maestro is a framework that we are using to test navigation across the application.
-To setup, please refer at [https://maestro.mobile.dev](https://maestro.mobile.dev)
+This directory contains local Android UI flows for IndiaFOSS Chat. The suite
+uses [Maestro](https://docs.maestro.dev/) to drive a connected Android device
+or emulator from outside the app.
 
 <!--- TOC -->
 
-* [Run test](#run-test)
+* [Prerequisites](#prerequisites)
+* [Run the test suite](#run-the-test-suite)
+  * [Required variables](#required-variables)
   * [Output](#output)
-* [Write test](#write-test)
-* [CI](#ci)
-* [iOS](#ios)
-* [Future](#future)
+* [Write or update a flow](#write-or-update-a-flow)
+* [Continuous integration](#continuous-integration)
 
 <!--- END -->
 
-## Run test
+## Prerequisites
 
-From root dir of the project
+- Install the [Maestro CLI](https://docs.maestro.dev/maestro-cli/).
+- Install the Android SDK and ADB. Start an Android emulator or connect a
+  physical device with USB debugging enabled.
+- Build and install the app's debug variant. The current debug package is
+  `org.indiafoss.chat.debug`. Maestro expects the app to be installed before
+  the flow starts; it does not build or install this project.
+- Use a disposable Matrix test account. The suite logs in, verifies the
+  session, sends messages, creates and removes rooms, invites users, and logs
+  out.
 
-*Note: Since Element X does not allow account creation, we have to use an existing account to run maestro test suite. So to run locally, please replace `user` and `123` with your test matrix.org account credentials, and `my room` with one of a room this account has joined. Note that the test will send messages to this room.*
+The [repository README](../README.md) covers the Android Studio `app` build
+configuration. If you change application code, rebuild and reinstall the debug
+variant before running these flows.
+
+## Run the test suite
+
+Run the command from the repository root. The suite loads
+`.maestro/allTests.yaml` and its referenced flows and scripts.
+
+### Required variables
+
+Set these variables in your shell or in Maestro Studio before running the
+suite. Keep passwords, recovery keys, and Matrix account data out of source
+control. The example assumes the variables are already exported in your shell.
+
+| Variable | Used for |
+| --- | --- |
+| `MAESTRO_APP_ID` | Debug package to launch: `org.indiafoss.chat.debug` |
+| `MAESTRO_USERNAME` | Matrix test account login |
+| `MAESTRO_PASSWORD` | Matrix test account password |
+| `MAESTRO_RECOVERY_KEY` | Session verification |
+| `MAESTRO_ROOM_NAME` | Existing joined room used by room-list and message flows |
+| `MAESTRO_INVITEE1_MXID` | User invited by room and direct-message flows |
+| `MAESTRO_INVITEE2_MXID` | Additional user invited by room flows |
+
+Run all flows:
 
 ```shell
 maestro test \
-    -e MAESTRO_APP_ID=io.element.android.x.debug \
-    -e MAESTRO_USERNAME=user1 \
-    -e MAESTRO_PASSWORD=123 \
-    -e MAESTRO_RECOVERY_KEY=ABC \
-    -e MAESTRO_ROOM_NAME="MyRoom" \
-    -e MAESTRO_INVITEE1_MXID=user2 \
-    -e MAESTRO_INVITEE2_MXID=user3 \
+    -e MAESTRO_APP_ID=org.indiafoss.chat.debug \
+    -e MAESTRO_USERNAME="$MAESTRO_USERNAME" \
+    -e MAESTRO_PASSWORD="$MAESTRO_PASSWORD" \
+    -e MAESTRO_RECOVERY_KEY="$MAESTRO_RECOVERY_KEY" \
+    -e MAESTRO_ROOM_NAME="$MAESTRO_ROOM_NAME" \
+    -e MAESTRO_INVITEE1_MXID="$MAESTRO_INVITEE1_MXID" \
+    -e MAESTRO_INVITEE2_MXID="$MAESTRO_INVITEE2_MXID" \
     .maestro/allTests.yaml
 ```
 
 ### Output
 
-Test result will be printed on the console, and screenshots will be generated at `./build/maestro`
+Maestro prints test results to the console. Flow screenshots are written under
+`build/maestro`.
 
-## Write test
+## Write or update a flow
 
-Tests are yaml files. Generally each yaml file should leave the app in the same screen than at the beginning.
+Flows are YAML files under `.maestro/tests`. Keep reusable flows deterministic
+and leave the app in a known state. The complete suite intentionally clears
+app state at startup and changes the disposable Matrix account and rooms.
 
-Start the Element X app and run this command to help writing test.
+Use [Maestro Studio](https://docs.maestro.dev/maestro-studio/) to inspect the
+connected app and author flows interactively. Reinstall the debug app after
+changing application code, then rerun the affected flow from the repository
+root.
 
-```shell
-maestro studio
-```
+## Continuous integration
 
-Note that sometimes, this prevent running the test. So kill the `maestro studio` process to be able to run the test again.
-
-Also, if updating the application code, do not forget to deploy again the application before running the maestro tests.
-
-## CI
-
-The CI is running maestro using the workflow `.github/worflow/maestro.yaml` and [maestro cloud](https://cloud.mobile.dev/). For now we are limited to 100 runs a month.
-Some GitHub secrets are used to be able to do that: `MAESTRO_CLOUD_API_KEY`, for now api key from `benoitm@element.io` maestro cloud account, and `MATRIX_MAESTRO_ACCOUNT_PASSWORD` which is the password of the account `@maestroelement:matrix.org`. This account contains a room `MyRoom` to be able to run the maestro test suite.
-
-## iOS
-
-Need to install `idb-companion` first
-
-```shell
-brew install idb-companion
-```
-
-Also:
-https://github.com/mobile-dev-inc/maestro/issues/146
-https://github.com/mobile-dev-inc/maestro/issues/107
-So you have to change your input keyboard to QWERTY for it to work properly.
-
-## Future
-
-- run on Element X iOS. This is already working but it need some change on the test to make it works. Could pass a PLATFORM parameter to have unique test and use conditional test.
-- run specific test on both iOS and Android devices to make them communicate together. Could be possible to test room invite and join, verification, call, etc. To be done when Element X will be able to create account and create room. A main script would be able to detect the Android device and the iOS device, and run several maestro tests sequentially, using `--device` parameter to perform a global test.
+No GitHub Actions workflow currently runs these Maestro flows, and this
+repository has no configured Maestro Cloud job. Run the suite locally with the
+prerequisites above. The old Element-owned account, secret names, and workflow
+path are not valid instructions for this fork.
