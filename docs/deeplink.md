@@ -1,71 +1,101 @@
-# Element X Android deeplink
+# IndiaFOSS Chat deep links
 
 <!--- TOC -->
 
 * [Introduction](#introduction)
-  * [Asset Links](#asset-links)
-  * [Supported links](#supported-links)
-* [Developer tools](#developer-tools)
+  * [Messenger links](#messenger-links)
+  * [Conference and handoff links](#conference-and-handoff-links)
+  * [Matrix links](#matrix-links)
+* [Developer smoke test](#developer-smoke-test)
 
 <!--- END -->
 
-
 ## Introduction
 
-Element X Android supports deep linking to specific screens in the application. This document explains how to use deep links in Element X Android.
+IndiaFOSS Chat accepts deep links for messenger navigation, Matrix permalinks,
+and IndiaFOSS conference handoff. This page documents the links declared by
+the fork's Android manifest and the developer smoke test for them.
 
-### Asset Links
+This fork does **not** declare HTTP/HTTPS Android App Links. The upstream
+Element asset-links URL and domain-verification commands are not part of this
+app's deep-link contract.
 
-The asset links file is available at https://element.io/.well-known/assetlinks.json
+### Messenger links
 
-### Supported links
+`elementx://open/` links navigate to a Matrix session. Path components are
+URL-encoded when they contain reserved characters.
 
-Element Call link: 
-> https://call.element.io/Example
+| Link | Destination |
+| --- | --- |
+| `elementx://open/@alice:example.org` | Session for `@alice:example.org` |
+| `elementx://open/@alice:example.org/!room:example.org` | Room |
+| `elementx://open/@alice:example.org/!room:example.org/$thread` | Thread |
+| `elementx://open/@alice:example.org/!room:example.org/$thread/$event` | Event in thread |
+| `elementx://open/@alice:example.org/!room:example.org//%24event` | Event without thread |
 
-Link to a user:
-> https://app.element.io/#/user/@alice:matrix.org
+The same examples are in [`tools/adb/deeplink.sh`](../tools/adb/deeplink.sh).
 
-Link to a room by id or alias:
-> https://app.element.io/#/room/!roomid:matrix.org
-> https://app.element.io/#/room/#element-x-android:matrix.org
+### Conference and handoff links
 
-Link to a room with a specific event:
-> https://app.element.io/#/room/!roomid:matrix.org/$eventid
+The IndiaFOSS Companion uses these links to hand a Matrix target to Chat:
 
-Note that it will also work with other domain such as:
-> https://mobile.element.io
-> https://develop.element.io
-> https://staging.element.io
+```text
+indiafoss://chat?dm=%40alice%3Aexample.org
+indiafoss://chat?join=%23indiafoss%3Aexample.org
+indiafoss://friend?v=1&matrix_id=%40alice%3Aexample.org
+```
 
-## Developer tools
+`indiafoss://conference/<route>` opens the hosted Companion inside Chat. For
+example:
 
-Using an Android 12 or higher emulator
+```text
+indiafoss://conference/activity/session-1
+```
 
-Ensure links verification is enabled
+`activity`, `location`, and `speaker` routes can be handed to the native
+Companion when it is installed. `event` and `booth` routes stay in the hosted
+Companion.
+
+### Matrix links
+
+The messenger accepts Matrix custom-scheme links and Matrix permalinks:
+
+```text
+matrix:u/alice:example.org?action=chat
+matrix:r/indiafoss:example.org?action=join
+https://matrix.to/#/@alice:example.org
+element://user/@alice:example.org
+element://room/#indiafoss:example.org
+```
+
+`matrix:` and `element:` are Android intent schemes declared by the app.
+`https://matrix.to` is classified when handled from the conference surface;
+it is not an Android App Link that claims the URL from a browser.
+
+## Developer smoke test
+
+Prerequisites:
+
+- Android SDK Platform Tools, which provide `adb`.
+- A connected Android device or emulator with USB or wireless debugging
+  enabled.
+- An installed debug build. Its package identifier is
+  `org.indiafoss.chat.debug`.
+
+From a terminal with the device connected, open a session:
+
 ```bash
-adb shell am compat enable 175408749 io.element.android.x.debug  
+adb shell am start -a android.intent.action.VIEW \
+  -d 'elementx://open/@alice:example.org'
 ```
 
-Reset link verifications for the given package id
+Open a conference route:
+
 ```bash
-adb shell pm set-app-links --package io.element.android.x.debug 0 all 
+adb shell am start -a android.intent.action.VIEW \
+  -d 'indiafoss://conference/activity/session-1'
 ```
 
-Force the package id links to be verified
-```bash
-adb shell pm verify-app-links --re-verify io.element.android.x.debug 
-```
-
-Print the link verification of the package id
-```bash
-adb shell pm get-app-links io.element.android.x.debug
-```
-
-```
-  io.element.android.x.debug:
-    ID: e2ece472-c266-4bf0-829c-be79959a6270
-    Signatures: [B0:B0:51:DC:56:5C:81:2F:E1:7F:6F:3E:94:5B:4D:79:04:71:23:AB:0D:A6:12:86:76:9E:B2:94:91:97:13:0E]
-    Domain verification state:
-      *.element.io: 1024
-```
+Android's `adb` documentation covers device connectivity and `am start`
+intent commands. These custom-scheme tests do not use App Links verification
+commands such as `pm set-app-links` or `pm verify-app-links`.
