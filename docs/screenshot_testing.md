@@ -12,56 +12,45 @@
 
 ## Overview
 
-- Screenshot tests are tests which record the content of a rendered screen and verify subsequent runs to check if the screen renders differently.
-- Element X uses [Paparazzi](https://github.com/cashapp/paparazzi) to render, record and verify Composables. All internal/public Composable Preview will be used for screenshot tests, thanks to the usage of [ComposablePreviewScanner](https://github.com/sergio-sastre/ComposablePreviewScanner).
-- The screenshot verification occurs on every pull request as part of the `tests.yml` workflow.
+- Screenshot tests record rendered screens and compare later runs against checked-in golden images.
+- This fork uses [Paparazzi](https://github.com/cashapp/paparazzi) to render, record and verify Composables. Public and internal Composable previews are discovered through [ComposablePreviewScanner](https://github.com/sergio-sastre/ComposablePreviewScanner).
+- Screenshot verification runs on every pull request in the `tests.yml` workflow.
 
 ## Setup
 
-- Install Git LFS through your package manager of choice (`brew install git-lfs` | `yay -S git-lfs`).
-- Install the Git LFS hooks into the project.
+- Install [Git LFS](https://git-lfs.com/) and ensure `git lfs` is available.
+- From the `indiafoss-chat-android` repository root, install the repository-local Git LFS hooks:
 
 ```shell
-# with element-android as the current working directory
 git lfs install --local
 ```
 
-If installed correctly, `git push` and `git pull` will now include LFS content.
+Git LFS stores the tracked PNG objects outside ordinary Git blobs. Once hooks are installed, use normal `git add`, `git commit` and `git push` commands; the remote LFS service transfers the objects.
 
 ## Recording
 
-Recording of screenshots is done by triggering the GitHub action [Record screenshots](https://github.com/element-hq/element-x-android/actions/workflows/recordScreenshots.yml), to avoid differences of generated binary files (png images) depending on developers' environment.
+This fork has no GitHub Actions workflow that records screenshots. Record them locally, review the generated PNGs, and commit intended snapshot changes through Git LFS before opening a pull request.
 
-So basically, you will create a branch, do some commits with your work on it, then push your branch, trigger the GitHub action to record the screenshots (only if you think preview may have changed), and finally create a pull request. The GitHub action will record the screenshots and commit the changes to the branch.
-
-You can still record the screenshots locally, but please do not commit the changes.
-
-To record the screenshot locally, run the following command:
+From the repository root:
 
 ```shell
 ./gradlew recordPaparazziDebug
 ```
 
-The task will delete the content of the folder `/snapshots` before recording (see the task `removeOldSnapshots` defined in the project).
-
-If this is not the case, you can run
-
-```shell
-rm -rf ./tests/uitests/src/test/snapshots
-```
-
-Paparazzi will generate images in `:tests:uitests/src/test/snapshots`, which will need to be committed to the repository using Git LFS.
+The repository's `removeOldSnapshots` task clears each module's `src/test/snapshots` directory before recording. Paparazzi writes the goldens under `tests/uitests/src/test/snapshots`; commit changed images with Git LFS.
 
 ## Verifying
 
+Run the same verification task used by CI:
+
 ```shell
-./gradlew verifyPaparazziDebug
+./gradlew :tests:uitests:verifyPaparazziDebug
 ```
 
-In the case of failure, Paparazzi will generate images in `:tests:uitests/build/paparazzi/failures`. The images will show the expected and actual screenshots along with a delta of the two images.
+When verification fails, Paparazzi writes expected, actual and diff images under `tests/uitests/build/paparazzi/failures`.
 
 ## Contributing
 
-- Creating Previewable Composable will automatically creates new screenshot tests.
-- After creating the new test, record and commit the newly rendered screens.
-- `./tools/git/validate_lfs.sh` can be run to ensure everything is working correctly with Git LFS, the CI also runs this check.
+- Adding a `@Preview`-annotated Composable creates screenshot coverage through the preview scanner.
+- Record and review the new snapshot, commit intended PNG changes through Git LFS, then run the verification task.
+- `./tools/git/validate_lfs.sh` checks that files marked for LFS are stored through Git LFS; CI runs this check as part of its quality gates.
