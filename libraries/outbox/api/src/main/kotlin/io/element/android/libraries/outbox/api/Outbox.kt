@@ -39,12 +39,17 @@ interface Outbox {
      * Compare unsettled records with what the live timeline shows. Pending records the SDK has no trace
      * of become [OutboxState.Uncertain] (after a short grace period so a send in flight is not judged
      * before its echo appears). Nothing is ever resent from here.
+     *
+     * [nowMillis] is `null` in production: the implementation reads its own clock, the same one that
+     * stamped [OutboxRecord.createdAtMillis], so the grace-period comparison cannot straddle two time
+     * bases. Tests pass an explicit value to drive the grace period. Nullable rather than defaulted
+     * because Kotlin does not inherit an interface method's default argument into its overrides.
      */
     suspend fun reconcile(
         sessionId: SessionId,
         roomId: RoomId,
         observations: List<OutboxObservation>,
-        nowMillis: Long,
+        nowMillis: Long? = null,
     )
 
     /** Retry on the same route, re-using its transaction id, through the route's own [SendHandle]. */

@@ -117,11 +117,14 @@ class DefaultOutbox(
         sessionId: SessionId,
         roomId: RoomId,
         observations: List<OutboxObservation>,
-        nowMillis: Long,
+        nowMillis: Long?,
     ) {
         // An empty timeline is most likely one that has not loaded yet: judging against it would
         // wrongly mark everything uncertain.
         if (observations.isEmpty()) return
+        // The same clock that stamped createdAtMillis in send(), so the grace period below compares
+        // two readings of one time base.
+        val now = nowMillis ?: clock.epochMillis()
         val byTransaction = observations.mapNotNull { observation -> observation.transactionId?.let { it.value to observation } }.toMap()
         val byEvent = observations.mapNotNull { observation -> observation.eventId?.let { it.value to observation } }.toMap()
         mutex.withLock {
@@ -132,10 +135,10 @@ class DefaultOutbox(
                 val signals = when {
                     echo != null -> echo.toSignals()
                     knownEventId != null && remoteReaders != null -> remoteReaders.map { OutboxSignal.ReadReceipt(knownEventId, it) }
-                    record.state.isPending && record.createdAtMillis + OUTBOX_RECONCILE_GRACE_MILLIS <= nowMillis -> listOf(OutboxSignal.AckLost)
+                    record.state.isPending && record.createdAtMillis + OUTBOX_RECONCILE_GRACE_MILLIS <= now -> listOf(OutboxSignal.AckLost)
                     else -> emptyList()
                 }
-                applyLocked(record, signals, nowMillis)
+                applyLocked(record, signals, now)
             }
         }
     }
