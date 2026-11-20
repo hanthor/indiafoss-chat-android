@@ -48,6 +48,32 @@ fun DiscoverableResult.satisfies(discoverable: Boolean): Boolean = when (this) {
 }
 
 /**
+ * Change the node's advertising state and persist the choice only once the node
+ * has accepted it.
+ *
+ * This is the single home of the rule [NeutrinoService.setDiscoverable]
+ * documents: a result other than [DiscoverableResult.Applied] (as judged by
+ * [satisfies]) means the node is still advertising exactly as before, so
+ * nothing may record or display a "hidden" the node is not delivering. On such
+ * a result this throws [DiscoverabilityNotAppliedException] and [persist] is
+ * never reached, which lets a caller surface the failure through an
+ * `AsyncAction` without restating the guard.
+ *
+ * [persist] receives [discoverable] and writes whatever that caller stores — the
+ * ordering guarantee is shared, the list of things to store is not.
+ */
+suspend fun NeutrinoService.applyDiscoverable(
+    discoverable: Boolean,
+    persist: suspend (Boolean) -> Unit,
+) {
+    val result = setDiscoverable(discoverable)
+    if (!result.satisfies(discoverable)) {
+        throw DiscoverabilityNotAppliedException(result)
+    }
+    persist(discoverable)
+}
+
+/**
  * Thrown by callers that need a [DiscoverableResult] other than
  * [DiscoverableResult.Applied] to fail a suspending flow (an `AsyncAction`).
  * The message is the human-readable reason, suitable for an error dialog.

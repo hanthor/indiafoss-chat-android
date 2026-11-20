@@ -1,3 +1,5 @@
+import extension.testCommonDependencies
+
 /*
  * Copyright (c) 2026 Element Creations Ltd.
  *
@@ -13,4 +15,6 @@ android {
     namespace = "io.element.android.services.neutrino.api"
 }
 
-dependencies {}
+dependencies {
+    testCommonDependencies(libs)
+}
