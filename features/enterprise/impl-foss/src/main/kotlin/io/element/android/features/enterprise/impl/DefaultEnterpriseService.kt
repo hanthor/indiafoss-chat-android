@@ -15,6 +15,7 @@ import io.element.android.compound.colors.SemanticColorsLightDark
 import io.element.android.features.enterprise.api.BugReportUrl
 import io.element.android.features.enterprise.api.EnterpriseService
 import io.element.android.libraries.matrix.api.core.SessionId
+import io.element.android.services.neutrino.api.NeutrinoDefaults
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -28,7 +29,7 @@ class DefaultEnterpriseService : EnterpriseService {
     // Force the embedded Neutrino homeserver as the only account provider.
     // Plain localhost is correct because Neutrino runs in-process (not a separate
     // host the emulator must reach), so this applies regardless of emulation.
-    override fun defaultHomeserverList(): List<String> = listOf("http://localhost:8008")
+    override fun defaultHomeserverList(): List<String> = listOf(NeutrinoDefaults.HOMESERVER_URL)
     override suspend fun isAllowedToConnectToHomeserver(homeserverUrl: String) = true
 
     override suspend fun overrideBrandColor(sessionId: SessionId?, brandColor: String?) = Unit

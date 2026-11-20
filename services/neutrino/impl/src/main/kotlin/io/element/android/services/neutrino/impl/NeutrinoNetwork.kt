@@ -7,6 +7,7 @@
 
 package io.element.android.services.neutrino.impl
 
+import io.element.android.services.neutrino.api.NeutrinoDefaults
 import java.net.Inet4Address
 import java.net.InetAddress
 
@@ -14,8 +15,13 @@ import java.net.InetAddress
  * Port the embedded homeserver's HTTP listens on: the CS-API for the local
  * client (reached over loopback — see `DefaultEnterpriseService.defaultHomeserverList`)
  * and the loopback upstream the in-process sidecar forwards inbound federation to.
+ *
+ * Same value as [NeutrinoDefaults.HOMESERVER_PORT], which is what modules
+ * outside this one build their loopback URL from — this `internal` constant
+ * exists so code within this module isn't tied to the `api` module for a
+ * value it owns operationally. The two must be changed together.
  */
-internal const val NEUTRINO_PORT = 8008
+internal const val NEUTRINO_PORT = NeutrinoDefaults.HOMESERVER_PORT
 
 /**
  * Public federation port the in-process low-bandwidth (CoAP/UDP) sidecar binds —
