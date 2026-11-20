@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- Must match CACHE_NOTIFICATION_SUBDIR in NotificationMediaRepo.kt. -->
     <cache-path
         name="downloads"
-        path="/" />
+        path="temp/notif/" />
 </paths>
