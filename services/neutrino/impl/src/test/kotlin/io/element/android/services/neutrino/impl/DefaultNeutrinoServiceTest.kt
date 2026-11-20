@@ -107,6 +107,59 @@ class DefaultNeutrinoServiceTest {
     }
 
     @Test
+    fun `isCapturing delegates to handle when present`() {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        val fakeHandle = mockk<NeutrinoHandle>()
+        every { fakeHandle.isCapturing() } returns true
+        service.handle = fakeHandle
+
+        assertThat(service.isCapturing()).isTrue()
+    }
+
+    @Test
+    fun `startCapture returns Failed when external storage is unavailable`() {
+        val storageContext = mockk<Context>(relaxed = true)
+        every { storageContext.getExternalFilesDir(null) } returns null
+        val service = DefaultNeutrinoService(storageContext, networkAddressProvider)
+        service.handle = mockk<NeutrinoHandle>()
+
+        val result = service.startCapture()
+
+        assertThat(result).isInstanceOf(CaptureResult.Failed::class.java)
+        assertThat((result as CaptureResult.Failed).reason).isEqualTo("External storage is unavailable")
+    }
+
+    @Test
+    fun `stopCapture returns null when no capture was running even with a handle present`() {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        val fakeHandle = mockk<NeutrinoHandle>()
+        every { fakeHandle.stopCapture() } returns false
+        service.handle = fakeHandle
+
+        assertThat(service.stopCapture()).isNull()
+    }
+
+    @Test
+    fun `awaitReady returns immediately when no handle is present`() = runTest {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        // Should return without hanging on the timeout, since there is nothing to await.
+        service.awaitReady(timeoutMs = 5_000)
+    }
+
+    @Test
+    fun `awaitReady stops polling once lastError is set`() = runTest {
+        val service = DefaultNeutrinoService(context, networkAddressProvider)
+        val fakeHandle = mockk<NeutrinoHandle>()
+        // The CS port (8008) is not open in the test environment, so isCsPortOpen()
+        // returns false on every poll; lastError() being non-null must short-circuit
+        // the wait instead of blocking for the full timeout.
+        every { fakeHandle.lastError() } returns "server_name mismatch"
+        service.handle = fakeHandle
+
+        service.awaitReady(timeoutMs = 60_000)
+    }
+
+    @Test
     fun `setDiscoverable returns Failed when the node is not running`() = runTest {
         val service = DefaultNeutrinoService(context, networkAddressProvider)
         val native = RecordingSetDiscoverable()
