@@ -116,6 +116,19 @@ implementation("org.matrix.rustcomponents:sdk-android:latest-version")
 
 You can also have access to the aars through the [release](https://github.com/matrix-org/matrix-rust-components-kotlin/releases) page.
 
+#### Neutrino Bindings AAR
+
+For Neutrino service integration, the app consumes pre-built Kotlin/uniffi bindings and BLE transport AAR artifacts (`neutrino-bindings-<version>.aar`) published via `hanthor/indiafoss-companion` releases.
+
+The download and validation is managed automatically by Gradle:
+- `services/neutrino/impl/build.gradle.kts` defines the `fetchNeutrinoBindings` Gradle task.
+- The AAR version is set via `libs.versions.toml` (`neutrino = "<version>"`).
+- `fetchNeutrinoBindings` downloads the release asset from `hanthor/indiafoss-companion` and verifies its SHA-256 checksum against `neutrinoSha256` in `services/neutrino/impl/build.gradle.kts`.
+- Build provenance details (including upstream commit SHAs for `neutrino` and `neutrino-iroh`) are recorded in `services/neutrino/impl/neutrino-provenance.json`.
+
+When updating the Neutrino bindings version, `libs.versions.toml`, `neutrinoSha256` in `services/neutrino/impl/build.gradle.kts`, and `services/neutrino/impl/neutrino-provenance.json` must all be updated together.
+
+
 #### Building the SDK locally
 
 If you want to make changes to the SDK or test them before integrating it with your codebase, you can build the SDK locally too.
