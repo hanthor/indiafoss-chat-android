@@ -7,7 +7,7 @@
 * [Run the test](#run-the-test)
 * [Stop Synapse](#stop-synapse)
 * [Troubleshoot](#troubleshoot)
-  * [Android Emulator does cannot reach the homeserver](#android-emulator-does-cannot-reach-the-homeserver)
+  * [Android Emulator cannot reach the homeserver](#android-emulator-cannot-reach-the-homeserver)
   * [Tests partially run but some fail with "Unable to contact localhost:8080"](#tests-partially-run-but-some-fail-with-unable-to-contact-localhost8080)
   * [virtualenv command fails](#virtualenv-command-fails)
 
@@ -99,7 +99,7 @@ deactivate
 
 You'll need python3 to be able to run synapse
 
-### Android Emulator does cannot reach the homeserver
+### Android Emulator cannot reach the homeserver
 
 Try on the Emulator browser to open "http://10.0.2.2:8080". You should see the "Synapse is running" message.
 
