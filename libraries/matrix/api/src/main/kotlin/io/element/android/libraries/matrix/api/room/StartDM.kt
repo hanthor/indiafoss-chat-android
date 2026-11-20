@@ -11,6 +11,7 @@ package io.element.android.libraries.matrix.api.room
 import io.element.android.libraries.matrix.api.MatrixClient
 import io.element.android.libraries.matrix.api.core.RoomId
 import io.element.android.libraries.matrix.api.core.UserId
+import io.element.android.libraries.matrix.api.core.isMeshUser
 
 /**
  * Try to find an existing DM with the given user, or create one if none exists and [createIfDmDoesNotExist] is true.
@@ -56,28 +57,18 @@ sealed interface StartDMResult {
 }
 
 /**
- * A mesh server name is the node's ed25519 public key as 64 lowercase hex
- * characters — no dots, no colons. Everything else is an internet homeserver
- * the mesh has no route to.
- */
-private val MESH_SERVER_NAME = Regex("^[0-9a-f]{64}$")
-
-private fun serverNameOf(userId: UserId): String =
-    userId.value.substringAfter(':', missingDelimiterValue = "")
-
-/**
  * True when this session is a mesh node and [invitee] lives on a server the
- * mesh cannot deliver key material to. DMs are created encrypted, and
- * encryption needs to-device key shares, which — unlike room events — have no
- * store-and-forward path through a gateway. Pure and internal so the rule is
- * testable without a client; see the companion project's issue #176 for the
- * seam this guards.
+ * mesh cannot deliver key material to. A mesh server name is the node's ed25519
+ * public key as 64 lowercase hex characters (see `isMeshServerName`); everything
+ * else is an internet homeserver the mesh has no route to.
+ *
+ * DMs are created encrypted, and encryption needs to-device key shares, which —
+ * unlike room events — have no store-and-forward path through a gateway. Pure
+ * and internal so the rule is testable without a client; see the companion
+ * project's issue #176 for the seam this guards.
  */
-internal fun dmWouldBeKeyDead(localUserId: UserId, invitee: UserId): Boolean {
-    val localIsMesh = MESH_SERVER_NAME.matches(serverNameOf(localUserId))
-    val inviteeIsMesh = MESH_SERVER_NAME.matches(serverNameOf(invitee))
-    return localIsMesh && !inviteeIsMesh
-}
+internal fun dmWouldBeKeyDead(localUserId: UserId, invitee: UserId): Boolean =
+    localUserId.isMeshUser && !invitee.isMeshUser
 
 /** Refused before creating: the key share could never be delivered. */
 class MeshUnreachableDmException(invitee: UserId) : Exception(

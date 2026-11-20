@@ -23,8 +23,6 @@ package io.element.android.libraries.matrix.api.core
 // vCard properties (any case) that carry a 64-hex mesh node id as their value.
 private val MESH_VCARD_PROPERTIES = setOf("x-indiafoss-mesh", "x-neutrino-server-name")
 
-private val MESH_HEX = Regex("^[0-9a-f]{64}$")
-
 /**
  * A [UserId] parsed from a scanned mesh contact payload that [PermalinkParser]
  * does not handle — a raw mesh MXID or the companion's mesh vCard line — or
@@ -58,7 +56,7 @@ private fun meshNodeIdFromVCardLine(line: String): String? {
     if (colon <= 0) return null
     val property = line.substring(0, colon).substringBefore(';').trim().lowercase()
     if (property !in MESH_VCARD_PROPERTIES) return null
-    return line.substring(colon + 1).trim().lowercase().takeIf { MESH_HEX.matches(it) }
+    return line.substring(colon + 1).trim().lowercase().takeIf { isMeshServerName(it) }
 }
 
 private const val FRIEND_PREFIX = "indiafoss://friend"
@@ -96,7 +94,7 @@ private fun indiafossLinkUserId(link: String): UserId? {
     val matrixId = if (isFriend) params["matrix_id"] else params["dm"]
     matrixId?.takeIf { MatrixPatterns.isUserId(it) }?.let { return UserId(it) }
     if (!isFriend) return null
-    return params["neutrino_server_name"]?.lowercase()?.takeIf { MESH_HEX.matches(it) }?.let { UserId("@n:$it") }
+    return params["neutrino_server_name"]?.lowercase()?.takeIf { isMeshServerName(it) }?.let { UserId("@n:$it") }
 }
 
 // Query-string decoding without exceptions: a stray '%' stays as it is, and the

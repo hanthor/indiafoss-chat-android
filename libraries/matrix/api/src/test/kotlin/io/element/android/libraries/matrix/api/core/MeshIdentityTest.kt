@@ -44,6 +44,17 @@ class MeshIdentityTest {
     }
 
     @Test
+    fun `isMeshServerName accepts a 64-lowercase-hex server-name and nothing else`() {
+        assertThat(isMeshServerName(meshNode)).isTrue()
+        assertThat(isMeshServerName("example.org")).isFalse()
+        assertThat(isMeshServerName("")).isFalse()
+        // Wrong length, and uppercase hex, which is not how node ids are encoded.
+        assertThat(isMeshServerName(meshNode.dropLast(1))).isFalse()
+        assertThat(isMeshServerName(meshNode + "a")).isFalse()
+        assertThat(isMeshServerName(meshNode.uppercase())).isFalse()
+    }
+
+    @Test
     fun `the short code is the last 8 hex, upper-cased and grouped`() {
         // …811b75897e -> last 8 = 1b75897e -> 1B75·897E
         assertThat(UserId("@n:$meshNode").meshShortCode).isEqualTo("1B75·897E")

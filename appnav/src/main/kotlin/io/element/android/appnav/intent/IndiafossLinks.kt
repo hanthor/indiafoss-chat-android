@@ -10,6 +10,7 @@ package io.element.android.appnav.intent
 import android.net.Uri
 import androidx.core.net.toUri
 import io.element.android.libraries.core.data.tryOrNull
+import io.element.android.libraries.matrix.api.core.isMeshServerName
 
 /**
  * Translates the IndiaFOSS Companion's reserved `indiafoss://` payloads into
@@ -28,7 +29,6 @@ object IndiafossLinks {
     private const val SCHEME = "indiafoss"
     private val USER_ID = Regex("^@[^:\\s]+:[^\\s]+$")
     private val ROOM_TARGET = Regex("^[#!][^:\\s]+:[^\\s]+$")
-    private val NEUTRINO_SERVER_NAME = Regex("^[0-9a-fA-F]{64}$")
 
     /** `matrix.to` permalink for a supported payload, or `null` when this is not one. */
     fun toMatrixTo(uriString: String): String? {
@@ -51,8 +51,9 @@ object IndiafossLinks {
         if (uri.getQueryParameter("v") != "1") return null
         uri.getQueryParameter("matrix_id")?.takeIf { USER_ID.matches(it) }?.let { return it }
         uri.getQueryParameter("neutrino_server_name")
-            ?.takeIf { NEUTRINO_SERVER_NAME.matches(it) }
-            ?.let { return "@n:${it.lowercase()}" }
+            ?.lowercase()
+            ?.takeIf { isMeshServerName(it) }
+            ?.let { return "@n:$it" }
         return null
     }
 }

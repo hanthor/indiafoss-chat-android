@@ -25,10 +25,24 @@ package io.element.android.libraries.matrix.api.core
 private val MESH_SERVER_NAME = Regex("^[0-9a-f]{64}$")
 
 /**
+ * True when [serverName] is a mesh node id: the iroh node id (an ed25519 public
+ * key) as 64 lowercase-hex characters — no dots, no colons. Everything else is
+ * an internet homeserver.
+ *
+ * The single source of truth for the node-id encoding. Callers holding a bare
+ * server-name string — a scanned vCard line's value, an `indiafoss://friend`
+ * card's `neutrino_server_name` parameter — ask here rather than restating the
+ * shape; callers holding a [UserId] use [isMeshUser] or [meshNodeId]. Matching
+ * is case-sensitive, so normalise a payload that may carry uppercase hex before
+ * calling.
+ */
+fun isMeshServerName(serverName: String): Boolean = MESH_SERVER_NAME.matches(serverName)
+
+/**
  * The server-name when this id belongs to a mesh node, else null. Never empty.
  */
 val UserId.meshNodeId: String?
-    get() = domainName?.takeIf { MESH_SERVER_NAME.matches(it) }
+    get() = domainName?.takeIf { isMeshServerName(it) }
 
 /** True when this user id is a mesh identity (`@<localpart>:<64-hex>`). */
 val UserId.isMeshUser: Boolean
